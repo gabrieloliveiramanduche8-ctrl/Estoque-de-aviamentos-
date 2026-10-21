@@ -142,7 +142,7 @@ select { color:#172033 !important; background:#f8fbff !important; }
      <div class="field"><label>Observação</label><input id="cutNotes" placeholder="Ex.: pedido do Torra"></div>
      <div class="field full"><label>Grade — peças de cada tamanho por par</label><div class="sizegrid" id="sizeGrid"></div><small class="muted">Exemplo: tamanho 38 = 2; com 120 pares, serão 240 peças tamanho 38.</small></div>
     </div><div class="actions"><button type="submit" class="primary">Calcular aviamentos</button><button type="button" class="secondary" id="resetCut">Limpar grade</button></div></form>
-    <div id="cutResults" class="hidden"><div class="divider"></div><h3 class="sectiontitle">Resultado do cálculo</h3><div id="cutSummary" class="notice"></div><div id="cutTable"></div><div class="actions"><button class="primary" id="saveCut">Salvar cálculo</button><button class="secondary" id="cutToIssue">Preparar saída para oficina</button></div></div>
+    <div id="cutResults" class="hidden"><div class="divider"></div><h3 class="sectiontitle">Resultado do cálculo</h3><div id="cutSummary" class="notice"></div><div id="cutTable"></div><div class="actions"><button class="primary" id="saveCut">Salvar cálculo</button><button class="secondary" id="cutToIssue">Preparar saída para oficina</button></div><div id="bulkIssuePanel" class="card hidden" style="margin-top:16px"><h3 class="sectiontitle">Enviar corte completo para oficina</h3><p class="muted">Confira os produtos e as quantidades. Todos os itens serão registrados juntos, somente após validar o estoque.</p><div class="fieldgrid"><div class="field"><label>Oficina *</label><input id="bulkWorkshop" placeholder="Nome da oficina"></div><div class="field"><label>Número do corte</label><input id="bulkCutNumber" readonly></div></div><div id="bulkIssueItems" style="margin-top:14px"></div><div class="actions"><button type="button" class="primary" id="confirmBulkIssue">Confirmar saída de todos os itens</button><button type="button" class="ghost" id="cancelBulkIssue">Cancelar</button></div></div></div>
     </div>
     <div class="card span12"><h3 class="sectiontitle">Cálculos salvos</h3><div id="cutsTable"></div></div>
    </div>
@@ -348,8 +348,8 @@ function renderWorkshops(){
  [...state.cuts].slice().reverse().forEach(c=>{
   (c.items||[]).forEach(item=>{
    const planned=Number(item.amount)||0;
-   const related=(state.moves||[]).filter(m=>Boolean(String(c.number||'').trim()) && m.type==='saida' && String(m.cut||'').trim()===String(c.number||'').trim() && (!c.workshop || norm(m.workshop)===norm(c.workshop)) && norm(m.productName||'').includes(norm(item.name)) && norm(m.unit||'')===norm(item.unit||''));
-   const sent=related.reduce((sum,m)=>sum+Number(m.qty||0),0);
+   const related=(state.moves||[]).filter(m=>Boolean(String(c.number||'').trim()) && m.type==='saida' && String(m.cut||'').trim()===String(c.number||'').trim() && (!c.workshop || norm(m.workshop)===norm(c.workshop)) && (norm(m.referenceName||'')===norm(c.referenceName||'') || !m.referenceName) && (norm(m.productName||'').includes(norm(item.name)) || norm(item.name)==='ziper 15 cm'&&norm(m.productName||'').includes('ziper')) && (norm(m.baseUnit||'')===norm(item.unit||'') || (!m.baseUnit && norm(m.unit||'')===norm(item.unit||''))));
+   const sent=related.reduce((sum,m)=>sum+Number(m.baseQty??m.qty??0),0);
    const missing=Math.max(0,planned-sent);
    const extra=Math.max(0,sent-planned);
    const status=sent===0?'NÃO ENVIADO':sent<planned?'FALTA '+fmt(missing)+' '+item.unit:sent===planned?'CONFERIDO':'SOBRA '+fmt(extra)+' '+item.unit;
@@ -453,7 +453,72 @@ function renderCalc(c){
 $('cutForm').addEventListener('submit',e=>{e.preventDefault();currentCalc=calculateCut();if(currentCalc)renderCalc(currentCalc);});
 $('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0);$('cutPairs').value='';$('cutNumber').value='';$('cutWorkshop').value='';$('cutNotes').value='';currentCalc=null;$('cutResults').classList.add('hidden');});
 $('saveCut').addEventListener('click',()=>{if(!currentCalc)return;if(state.cuts.some(c=>c.id===currentCalc.id)){toast('Este cálculo já foi salvo.');return;}state.cuts.push(currentCalc);persist();renderAll();toast('Cálculo salvo.');});
-$('cutToIssue').addEventListener('click',()=>{if(!currentCalc)return;goto('movimentar');$('moveType').value='saida';$('moveWorkshop').value=currentCalc.workshop;$('moveCut').value=currentCalc.number;$('moveReference').value=currentCalc.referenceId;toast('Dados do corte transferidos. Selecione o produto e confirme cada saída.');});
+function stockUnitFactor(product, calculatedUnit){
+ const pu=norm(product.unit||'unidade'), cu=norm(calculatedUnit||'unidades');
+ const unitAliases={unidades:'unidade',metros:'metro',gramas:'grama'};
+ const base=unitAliases[cu]||cu;
+ if(pu===base || (base==='unidade'&&pu==='unidade') || (base==='grama'&&pu==='grama')) return 1;
+ if(base==='grama'&&pu==='kg') return 1000;
+ if(base==='metro'&&pu==='rolo') return Number(product.packSize)||(norm(product.name).includes('elastic')?25:50);
+ if(base==='metro'&&pu==='pacote') return Number(product.packSize)||(norm(product.name).includes('elastic')?375:0);
+ if(base==='unidade'&&['pacote','caixa','rolo'].includes(pu)) return Number(product.packSize)||0;
+ if(base==='grama'&&pu==='pacote') return Number(product.packSize)||0;
+ return 0;
+}
+function updateBulkRow(index){
+ const select=$(`[data-bulk-product="${index}"]`), qty=$(`[data-bulk-qty="${index}"]`), hint=$(`[data-bulk-conversion="${index}"]`);
+ if(!select||!qty||!hint||!currentCalc)return;
+ const item=currentCalc.items[index], product=state.products.find(p=>p.id===select.value);
+ if(!product){hint.textContent='Selecione um produto compatível com a unidade calculada.';return;}
+ const factor=stockUnitFactor(product,item.unit);
+ if(!(factor>0)){hint.textContent=`Unidade incompatível: o cálculo está em ${item.unit}, mas o estoque está em ${product.unit}. Informe o conteúdo por pacote/caixa ou cadastre uma unidade compatível.`;qty.value='0';return;}
+ const converted=Number(item.amount)/factor;
+ qty.value=converted.toFixed(3);
+ hint.textContent=`Conversão: ${fmt(item.amount)} ${item.unit} = ${fmt(converted)} ${product.unit} (1 ${product.unit} = ${fmt(factor)} ${item.unit}).`;
+}
+function openBulkIssue(){
+ if(!currentCalc)return;
+ const panel=$('bulkIssuePanel');panel.classList.remove('hidden');
+ $('bulkWorkshop').value=currentCalc.workshop||'';$('bulkCutNumber').value=currentCalc.number||'Não informado';
+ const products=state.products;
+ const rows=(currentCalc.items||[]).map((item,index)=>{
+  const itemName=norm(item.name);
+  let matches=products.filter(p=>norm(p.name)===itemName || (itemName==='ziper 15 cm' && norm(p.name).includes('ziper')));
+  if(!matches.length && itemName.startsWith('etiqueta de composicao')) matches=products.filter(p=>norm(p.name)===itemName);
+  const selected=matches[0]?.id||'';
+  const options=products.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(productLabel(p))} — saldo ${fmt(p.qty)}</option>`).join('');
+  const selectedProduct=products.find(p=>p.id===selected);
+  const factor=selectedProduct?stockUnitFactor(selectedProduct,item.unit):1;
+  const defaultQty=selectedProduct&&factor>0?Number(item.amount)/factor:Number(item.amount)||0;
+  return `<div class="card bulk-line" style="margin-bottom:10px" data-bulk-line="${index}"><div class="fieldgrid"><div class="field"><label>Aviamento calculado</label><input readonly value="${esc(item.name)}"></div><div class="field"><label>Necessidade calculada</label><input readonly value="${fmt(item.amount)} ${esc(item.unit)}"></div><div class="field"><label>Produto do estoque</label><select data-bulk-product="${index}"><option value="">Selecione o produto</option>${options}</select></div><div class="field"><label>Quantidade a retirar (unidade do estoque)</label><input data-bulk-qty="${index}" type="number" min="0" step="0.001" value="${defaultQty.toFixed(3)}"></div><div class="field full"><small class="muted" data-bulk-conversion="${index}">${selectedProduct&&factor>0?`Conversão: ${fmt(item.amount)} ${esc(item.unit)} = ${fmt(defaultQty)} ${esc(selectedProduct.unit)}`:'Selecione um produto compatível com a unidade calculada.'}</small></div></div></div>`;
+ }).join('');
+ $('bulkIssueItems').innerHTML=rows||'<div class="empty">Este cálculo não possui aviamentos para enviar.</div>';
+ (currentCalc.items||[]).forEach((item,index)=>{const sel=$(`[data-bulk-product="${index}"]`);if(sel)sel.addEventListener('change',()=>updateBulkRow(index));});
+ panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('cutToIssue').addEventListener('click',openBulkIssue);
+$('cancelBulkIssue').addEventListener('click',()=>$('bulkIssuePanel').classList.add('hidden'));
+$('confirmBulkIssue').addEventListener('click',()=>{
+ if(!currentCalc)return;
+ const workshop=$('bulkWorkshop').value.trim();if(!workshop)return toast('Informe o nome da oficina.');
+ const lines=(currentCalc.items||[]).map((item,index)=>({item,index,productId:$(`[data-bulk-product="${index}"]`)?.value||'',qty:Number($(`[data-bulk-qty="${index}"]`)?.value)})).filter(x=>x.qty>0);
+ if(!lines.length)return toast('Informe ao menos um item com quantidade maior que zero.');
+ for(const line of lines){
+  const p=state.products.find(x=>x.id===line.productId);if(!p)return toast(`Selecione o produto do estoque para ${line.item.name}.`);
+  if(!Number.isFinite(line.qty)||line.qty<=0)return toast(`Confira a quantidade de ${line.item.name}.`);
+  const factor=stockUnitFactor(p,line.item.unit);if(!(factor>0))return toast(`Unidade incompatível para ${line.item.name}. Cadastre conteúdo por pacote/caixa ou escolha produto em ${line.item.unit}.`);
+  const baseQty=line.qty*factor;
+  if(line.qty>Number(p.qty)+1e-9)return toast(`Saldo insuficiente para ${p.name}. Disponível: ${fmt(p.qty)} ${p.unit}.`);
+  line.baseQty=baseQty;line.factor=factor;
+ }
+ const now=new Date().toISOString();
+ for(const line of lines){
+  const p=state.products.find(x=>x.id===line.productId),before=Number(p.qty)||0;
+  p.qty=Number((before-line.qty).toFixed(3));
+  state.moves.push({id:uid(),date:now,type:'saida',productId:p.id,productName:productLabel(p),qty:line.qty,unit:p.unit,baseQty:line.baseQty,baseUnit:line.item.unit,workshop,cut:currentCalc.number||'',referenceId:currentCalc.referenceId||'',referenceName:currentCalc.referenceName||'',notes:'Envio do corte completo para oficina',balanceBefore:before,balanceAfter:Number(p.qty),actor:'Local user'});
+ }
+ persist();renderAll();$('bulkIssuePanel').classList.add('hidden');toast(`Saída registrada: ${lines.length} item(ns) enviados para ${workshop}.`);
+});
 $('moveForm').addEventListener('submit',e=>{
  e.preventDefault();const p=state.products.find(x=>x.id===$('moveProduct').value);if(!p)return toast('Selecione um produto.');
  const type=$('moveType').value,qty=Number($('moveQty').value),before=Number(p.qty)||0;if(!Number.isFinite(qty)||qty<=0)return toast('Informe uma quantidade válida.');
