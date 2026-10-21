@@ -49,6 +49,12 @@ td{color:#172033}
 
 .audit-diff{font-weight:800;color:#c4b5fd}.feature-card{border:1px solid #5865c866;box-shadow:0 0 22px #5b5af522}.video-active{display:block!important}
 @media(max-width:560px){#page-usuarios .fieldgrid{grid-template-columns:1fr}}
+
+/* CORREÇÃO: texto digitado precisa ter contraste no tema escuro */
+input, textarea { color:#172033 !important; background:#f8fbff !important; caret-color:#172033 !important; }
+input::placeholder, textarea::placeholder { color:#64748b !important; opacity:1 !important; }
+input:focus, textarea:focus { color:#172033 !important; background:#ffffff !important; }
+select { color:#172033 !important; background:#f8fbff !important; }
 </style>
 </head>
 <body>
@@ -95,7 +101,7 @@ td{color:#172033}
    <div class="grid">
     <div class="card span7"><h3 class="sectiontitle" id="productFormTitle">Novo produto</h3><form id="productForm"><input type="hidden" id="productId"><div class="fieldgrid">
      <div class="field"><label>Nome do produto *</label><input id="productName" required placeholder="Ex.: Zíper 15 cm"></div>
-     <div class="field"><label>Categoria</label><select id="productCategory"><option>Aviamento</option><option>Botão</option><option>Etiqueta</option><option>Fechamento</option><option>Material de costura</option><option>Outro</option></select></div>
+     <div class="field"><label>Categoria</label><select id="productCategory"><option>Costura</option><option>Acabamento</option><option>Aviamento</option><option>Botão</option><option>Etiqueta</option><option>Fechamento</option><option>Material de costura</option><option>Outro</option></select></div>
      <div class="field"><label>Cor / variação</label><input id="productColor" placeholder="Ex.: Preto"></div>
      <div class="field"><label>Unidade de controle *</label><select id="productUnit" required><option value="unidade">Unidade</option><option value="pacote">Pacote</option><option value="caixa">Caixa</option><option value="rolo">Rolo</option><option value="metro">Metro</option><option value="grama">Grama</option><option value="kg">Quilograma (kg)</option></select></div>
      <div class="field"><label>Quantidade inicial *</label><input id="productQty" type="number" min="0" step="0.001" value="0" required></div>
@@ -343,7 +349,7 @@ function renderCuts(){
 }
 function seed(){
  let added=0;
- defaultProducts.forEach(d=>{if(!productMatch(d[0],d[2])){state.products.push({id:uid(),name:d[0],category:d[1],color:d[2],unit:d[3],qty:d[4],packSize:d[5],notes:d[6]});added++;}});
+ defaultProducts.forEach(d=>{if(!productMatch(d[0],d[2])){const n=norm(d[0]);const destination=(n.includes('botao')||n.includes('courinho'))?'Acabamento':'Costura';state.products.push({id:uid(),name:d[0],category:destination,color:d[2],unit:d[3],qty:d[4],packSize:d[5],notes:d[6],destination});added++;}});
  persist();renderAll();$('seedStatus').textContent=added?`${added} produtos adicionados. Confira unidades e conteúdo de cada embalagem.`:'Os produtos sugeridos já estão cadastrados.';
  toast(added?`${added} produtos adicionados.`:'Lista já cadastrada.');
 }
@@ -357,7 +363,7 @@ function clearProductForm(){ $('productForm').reset();$('productId').value='';$(
 $('clearProduct').addEventListener('click',clearProductForm);
 $('productForm').addEventListener('submit',e=>{
  e.preventDefault();
- const id=$('productId').value, p={id:id||uid(),name:$('productName').value.trim(),category:$('productCategory').value,color:$('productColor').value.trim(),unit:$('productUnit').value,qty:Number($('productQty').value),packSize:Number($('productPackSize').value)||0,code:$('productCode').value.trim(),minQty:$('productMinQty').value===''?null:Number($('productMinQty').value),notes:$('productNotes').value.trim()};
+ const id=$('productId').value, p={id:id||uid(),name:$('productName').value.trim(),category:$('productCategory').value,color:$('productColor').value.trim(),unit:$('productUnit').value,qty:Number($('productQty').value),packSize:Number($('productPackSize').value)||0,code:$('productCode').value.trim(),minQty:$('productMinQty').value===''?null:Number($('productMinQty').value),notes:$('productNotes').value.trim()}; p.destination=p.category;
  if(!p.name||!Number.isFinite(p.qty)||p.qty<0)return toast('Confira o nome e a quantidade.');
  const duplicate=state.products.find(x=>x.id!==id&&norm(x.name)===norm(p.name)&&norm(x.color||'')===norm(p.color||''));
  if(duplicate&&!confirm('Já existe um produto com este nome e cor. Deseja cadastrar mesmo assim?'))return;
