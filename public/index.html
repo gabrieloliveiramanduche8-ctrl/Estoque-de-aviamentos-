@@ -55,6 +55,24 @@ input, textarea { color:#172033 !important; background:#f8fbff !important; caret
 input::placeholder, textarea::placeholder { color:#64748b !important; opacity:1 !important; }
 input:focus, textarea:focus { color:#172033 !important; background:#ffffff !important; }
 select { color:#172033 !important; background:#f8fbff !important; }
+
+.aviamento-results{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+.aviamento-result{background:#fff;border:1px solid #dbe3ef;border-radius:14px;overflow:hidden;color:#172033}
+.aviamento-result-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:15px 16px;background:#f1f5fb;border-bottom:1px solid #dbe3ef}
+.aviamento-result-top>strong{font-size:16px;line-height:1.4}
+.aviamento-amount{font-weight:800;font-size:16px;white-space:nowrap;text-align:right;color:#1d4ed8}
+.label-breakdown{padding:12px 14px}
+.label-total{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 12px;margin-bottom:12px;background:#eaf2ff;border-radius:10px;color:#1e3a8a}
+.label-total strong{font-size:18px;white-space:nowrap}
+.label-size-head,.label-size-row{display:grid;grid-template-columns:1fr 1.1fr .6fr;gap:8px;align-items:center;padding:9px 7px}
+.label-size-head{font-size:12px;font-weight:750;color:#64748b;border-bottom:1px solid #dbe3ef}
+.label-size-row{font-size:14px;border-bottom:1px solid #edf1f7}
+.label-size-row:last-child{border-bottom:0}
+.label-size-row span:last-child{text-align:right;font-weight:700;white-space:nowrap}
+.label-size-row span:nth-child(2){text-align:center}
+.aviamento-detail{margin:0;padding:12px 15px;color:#475569;font-size:13px;line-height:1.5}
+@media(max-width:520px){.aviamento-result-top{flex-direction:column;gap:5px}.aviamento-amount{text-align:left}.label-size-head,.label-size-row{grid-template-columns:.8fr 1.2fr .7fr;font-size:12px;padding-left:2px;padding-right:2px}.label-total{align-items:flex-start;flex-direction:column;gap:4px}}
+
 </style>
 </head>
 <body>
@@ -420,7 +438,17 @@ function renderCalc(c){
  }));
  const gradeHtml=table(['Tamanho','Peças por par','Pares do corte','Total de peças'],gradeRows.map(g=>[g.Tamanho,fmt(g['Peças por par']),fmt(g.Pares),`<strong>${fmt(g['Total de peças'])}</strong>`]));
  $('cutSummary').innerHTML=`<strong>${esc(c.referenceName)}</strong><br>Quantidade do corte: <strong>${fmt(c.pairs||0)} pares</strong><br>Total calculado: <strong>${fmt(c.totalPieces)} peças</strong><br>Número do corte: ${esc(c.number||'não informado')}<div class="divider"></div><strong>Conferência da grade</strong>${gradeHtml}`;
- $('cutTable').innerHTML=table(['Aviamento','Necessidade calculada','Detalhes'],c.items.map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail||'—')])) + `<div class="divider"></div><h4>Pesos de referência dos botões (não somados ao consumo da referência)</h4>` + table(['Item','Peso calculado','Equivalência'],(c.extraCalculations||[]).map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail)]));
+ const itemCards=c.items.map(i=>{
+  let extra='';
+  if(i.name==='Etiqueta de tamanho'){
+   const bySize=(i.bySize||[]).map(x=>`<div class="label-size-row"><span>Tamanho <strong>${x.size}</strong></span><span>${fmt(x.qty)} etiquetas</span><span>${fmt(x.grams)} g</span></div>`).join('');
+   extra=`<div class="label-breakdown"><div class="label-total"><span>Peso total estimado</span><strong>${fmt(i.grams||0)} g</strong></div><div class="label-size-head"><span>Por tamanho</span><span>Quantidade</span><span>Peso</span></div>${bySize}</div>`;
+  } else if(String(i.name).startsWith('Etiqueta de composição')) {
+   extra=`<div class="label-breakdown"><div class="label-total"><span>Peso total estimado (0,4 g por peça)</span><strong>${fmt(i.grams||0)} g</strong></div></div>`;
+  } else if(i.detail) extra=`<p class="aviamento-detail">${esc(i.detail)}</p>`;
+  return `<article class="aviamento-result"><div class="aviamento-result-top"><strong>${esc(i.name)}</strong><span class="aviamento-amount">${fmt(i.amount)} ${esc(i.unit)}</span></div>${extra}</article>`;
+ }).join('');
+ $('cutTable').innerHTML=`<div class="aviamento-results">${itemCards}</div><div class="divider"></div><h4>Pesos de referência dos botões (não somados ao consumo da referência)</h4>` + table(['Item','Peso calculado','Equivalência'],(c.extraCalculations||[]).map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail)]));
 }
 $('cutForm').addEventListener('submit',e=>{e.preventDefault();currentCalc=calculateCut();if(currentCalc)renderCalc(currentCalc);});
 $('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0);$('cutPairs').value='';$('cutNumber').value='';$('cutWorkshop').value='';$('cutNotes').value='';currentCalc=null;$('cutResults').classList.add('hidden');});
