@@ -1,64 +1,107 @@
-const express = require('express');
-const path = require('path');
-const { Pool } = require('pg');
+const express = require("express");
+const path = require("path");
+const { Pool } = require("pg");
 
 const app = express();
-const port = process.env.PORT || 10000;
-if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL não configurada no Render.');
-  process.exit(1);
-}
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
-});
-app.use(express.json({ limit: '2mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
-const EMPTY_STATE = { products: [], moves: [], cuts: [], audits: [] };
+const PORT = process.env.PORT || 10000;
+const ROOT = __dirname;
 
-async function initializeDatabase() {
-  await pool.query(`CREATE TABLE IF NOT EXISTS app_state (
-    id SMALLINT PRIMARY KEY CHECK (id = 1),
-    payload JSONB NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  )`);
-  await pool.query(
-    `INSERT INTO app_state (id, payload) VALUES (1, $1::jsonb) ON CONFLICT (id) DO NOTHING`,
-    [JSON.stringify(EMPTY_STATE)]
-  );
+app.disable("x-powered-by");
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// PostgreSQL é opcional para o servidor iniciar.
+// Configure DATABASE_URL nas variáveis de ambiente do Render para conectar o banco.
+let pool = null;
+if (process.env.DATABASE_URL) {
+  const isProduction = process.env.NODE_ENV === "production";
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: isProduction ? { rejectUnauthorized: false } : undefined,
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000,
+    max: 5
+  });
+
+  pool.on("error", (err) => {
+    console.error("Erro inesperado na conexão PostgreSQL:", err.message);
+  });
 }
-app.get('/api/health', async (_req, res) => {
-  try { await pool.query('SELECT 1'); res.json({ ok: true, database: 'connected' }); }
-  catch (err) { console.error(err.message); res.status(503).json({ ok: false, database: 'unavailable' }); }
+
+// Rotas de diagnóstico para verificar o serviço no Render.
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: "Estoque de Aviamentos",
+    databaseConfigured: Boolean(process.env.DATABASE_URL)
+  });
 });
-app.get('/api/state', async (_req, res) => {
-  try {
-    const result = await pool.query('SELECT payload FROM app_state WHERE id = 1');
-    res.json(result.rows[0]?.payload || EMPTY_STATE);
-  } catch (err) { console.error(err.message); res.status(500).json({ error: 'Não foi possível carregar os dados.' }); }
-});
-app.put('/api/state', async (req, res) => {
-  const payload = req.body;
-  if (!payload || !Array.isArray(payload.products) || !Array.isArray(payload.moves) ||
-      !Array.isArray(payload.cuts) || !Array.isArray(payload.audits)) {
-    return res.status(400).json({ error: 'Formato de dados inválido.' });
+
+app.get("/api/db-status", async (_req, res) => {
+  if (!pool) {
+    return res.status(200).json({
+      configured: false,
+      connected: false,
+      message: "DATABASE_URL ainda não foi configurada no Render."
+    });
   }
-  if (Buffer.byteLength(JSON.stringify(payload), 'utf8') > 1500000) {
-    return res.status(413).json({ error: 'Dados excedem o limite permitido.' });
-  }
+
   try {
-    const result = await pool.query(
-      'UPDATE app_state SET payload = $1::jsonb, updated_at = NOW() WHERE id = 1 RETURNING updated_at',
-      [JSON.stringify(payload)]
-    );
-    res.json({ ok: true, updatedAt: result.rows[0]?.updated_at });
-  } catch (err) { console.error(err.message); res.status(500).json({ error: 'Não foi possível salvar os dados.' }); }
+    await pool.query("SELECT 1");
+    return res.status(200).json({
+      configured: true,
+      connected: true,
+      message: "Conexão com PostgreSQL funcionando."
+    });
+  } catch (err) {
+    console.error("Falha ao testar PostgreSQL:", err.message);
+    return res.status(503).json({
+      configured: true,
+      connected: false,
+      message: "Não foi possível conectar ao PostgreSQL. Confira DATABASE_URL no Render."
+    });
+  }
 });
-app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-initializeDatabase()
-  .then(() => app.listen(port, '0.0.0.0', () => console.log('Estoque de Aviamentos ouvindo na porta ' + port)))
-  .catch(err => { console.error('Falha ao inicializar PostgreSQL:', err.message); process.exit(1); });
-process.on('SIGTERM', async () => { await pool.end(); process.exit(0); });
+
+// Publica os arquivos estáticos da raiz do repositório e da pasta public.
+app.use(express.static(ROOT));
+app.use(express.static(path.join(ROOT, "public")));
+
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(ROOT, "index.html"), (err) => {
+    if (err && !res.headersSent) {
+      res.status(404).send("Arquivo index.html não encontrado na raiz do repositório.");
+    }
+  });
+});
+
+// Resposta JSON para rotas API desconhecidas.
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "Rota da API não encontrada." });
+});
+
+app.use((err, _req, res, _next) => {
+  console.error("Erro na aplicação:", err.message);
+  res.status(500).json({ error: "Erro interno do servidor." });
+});
+
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Estoque de Aviamentos rodando na porta ${PORT}`);
+});
+
+async function shutdown() {
+  server.close(async () => {
+    if (pool) {
+      try {
+        await pool.end();
+      } catch (err) {
+        console.error("Erro ao encerrar PostgreSQL:", err.message);
+      }
+    }
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);

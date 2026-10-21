@@ -2,10 +2,13 @@
   "name": "estoque-de-aviamentos",
   "version": "1.0.0",
   "private": true,
-  "description": "Estoque de Aviamentos com API Node.js e PostgreSQL no Render",
+  "description": "Servidor do sistema Estoque de Aviamentos",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "express": "^4.21.2",
