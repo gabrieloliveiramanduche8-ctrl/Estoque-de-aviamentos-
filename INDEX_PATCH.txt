@@ -1,0 +1,90 @@
+INTEGRAÇÃO DO INDEX.HTML — ALTERAÇÕES NECESSÁRIAS
+
+A integração exige duas alterações no index.html. Faça backup do arquivo antes.
+
+1) Encontre:
+function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
+
+Substitua por:
+let remoteReady = false;
+let saveQueue = Promise.resolve();
+function persist(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  if (!remoteReady) return;
+  const snapshot = JSON.parse(JSON.stringify(state));
+  saveQueue = saveQueue.then(async () => {
+    const response = await fetch('/api/state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(snapshot)
+    });
+    if (!response.ok) {
+      const detail = await response.json().catch(() => ({}));
+      throw new Error(detail.error || 'Falha ao salvar no PostgreSQL.');
+    }
+  }).catch(err => {
+    console.error('Falha ao sincronizar com PostgreSQL:', err);
+    alert('ATENÇÃO: não foi possível salvar no banco. Confira a conexão; os dados podem estar apenas no cache local.');
+  });
+}
+
+2) Encontre o bloco final:
+function init(){
+ buildSizeGrid();renderProductSelects();renderAll();refreshInvProducts();renderAuditHistory();renderReports();
+ // photo/voice draft uses browser-only APIs; data stays local.
+}
+init();
+
+Substitua por:
+async function init(){
+  buildSizeGrid();
+  try {
+    const response = await fetch('/api/state', { headers: { 'Accept': 'application/json' } });
+    if (!response.ok) throw new Error('API/banco indisponível.');
+    const remote = await response.json();
+    if (remote && remote.state && !remote.empty) {
+      state = {
+        products: Array.isArray(remote.state.products) ? remote.state.products : [],
+        moves: Array.isArray(remote.state.moves) ? remote.state.moves : [],
+        cuts: Array.isArray(remote.state.cuts) ? remote.state.cuts : [],
+        audits: Array.isArray(remote.state.audits) ? remote.state.audits : []
+      };
+    } else {
+      const local = loadState();
+      const hasLocalData = local.products.length || local.moves.length || local.cuts.length || local.audits.length;
+      state = hasLocalData ? local : { products: [], moves: [], cuts: [], audits: [] };
+      const migration = await fetch('/api/state', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(state)
+      });
+      if (!migration.ok) throw new Error('Falha ao migrar os dados locais.');
+    }
+    remoteReady = true;
+    const status = document.getElementById('apiStatus');
+    if (status) status.value = 'PostgreSQL conectado';
+    const base = document.getElementById('apiBase');
+    if (base) base.value = window.location.origin;
+  } catch (err) {
+    remoteReady = false;
+    console.error('Falha ao carregar PostgreSQL:', err);
+    const status = document.getElementById('apiStatus');
+    if (status) status.value = 'Banco indisponível';
+    alert('Não foi possível carregar o PostgreSQL. O sistema está em modo local e não sincroniza até corrigir a conexão.');
+    state = loadState();
+    const base = document.getElementById('apiBase');
+    if (base) base.value = window.location.origin;
+  }
+  renderProductSelects();
+  renderAll();
+  refreshInvProducts();
+  renderAuditHistory();
+  renderReports();
+}
+init();
+
+OBSERVAÇÃO:
+- A URL da API usa o mesmo domínio do Web Service, então não precisa configurar CORS.
+- O servidor cria a tabela estoque_app_state automaticamente na primeira chamada.
+- A primeira inicialização migra o estado local para o banco apenas se a tabela ainda estiver vazia.
+- Este protótipo salva o estado do estoque como um documento JSONB único. Para múltiplos usuários simultâneos, login/permissões e histórico transacional, é necessário evoluir para tabelas normalizadas e autenticação no servidor.

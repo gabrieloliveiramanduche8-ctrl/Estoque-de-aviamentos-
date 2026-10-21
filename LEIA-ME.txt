@@ -1,26 +1,14 @@
-# Arquivos corrigidos — Estoque de Aviamentos
+INTEGRAR ESTOQUE DE AVIAMENTOS AO POSTGRESQL
 
-## Arquivos incluídos
-- `package.json`: define as dependências e o comando `npm start`.
-- `server.js`: servidor Express, publicação do `index.html`, rota de saúde e teste opcional do PostgreSQL.
-- `.env.example`: exemplo sem credenciais.
+1. Faça backup de index.html e server.js no GitHub antes de editar.
+2. Substitua server.js pelo server.js deste pacote.
+3. Em index.html, aplique as duas alterações descritas em INDEX_PATCH.txt.
+4. Confirme que package.json tem as dependências express e pg e o script "start": "node server.js".
+5. No Render Web Service, Environment, confirme que DATABASE_URL contém a Internal Database URL do PostgreSQL existente.
+6. Salve e aguarde o deploy.
+7. Teste:
+   /api/db-status -> configured:true, connected:true
+   /api/state -> empty:true no primeiro uso, ou o estado salvo
+8. Abra o sistema. Se já houver dados no navegador e o banco estiver vazio, a inicialização tenta migrá-los uma vez.
 
-## Como instalar no GitHub pelo celular
-1. Abra o repositório correto e a branch `main`.
-2. Abra `package.json` e substitua o conteúdo pelo arquivo deste pacote; salve/commit.
-3. Abra `server.js` e substitua o conteúdo pelo arquivo deste pacote; salve/commit.
-4. Não substitua `index.html` nem apague a pasta `public`.
-5. No Render Web Service, use:
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - Root Directory: deixe vazio se os arquivos estiverem na raiz.
-6. Faça o deploy.
-
-## PostgreSQL
-O servidor inicia mesmo que `DATABASE_URL` ainda não esteja configurada. Para conectar o banco, crie/seleciona um PostgreSQL no Render e adicione `DATABASE_URL` em Environment Variables com a URL fornecida pelo Render. Não publique essa URL no GitHub nem a envie em mensagens.
-
-## Testes depois do deploy
-- `/api/health` deve responder com JSON e `ok: true`.
-- `/api/db-status` informa se a variável do banco está configurada e se a conexão funciona.
-
-Importante: estes arquivos preparam o servidor e a conexão de diagnóstico. Eles não implementam, por si só, operações de estoque nem criam tabelas de negócio no banco. Isso depende do código e dos requisitos existentes do sistema.
+Não compartilhe DATABASE_URL; ela pode conter a senha do banco.
