@@ -113,9 +113,10 @@ td{color:#172033}
     <div class="card span12"><form id="cutForm"><div class="fieldgrid">
      <div class="field"><label>Número do corte</label><input id="cutNumber" placeholder="Ex.: 00125"></div>
      <div class="field"><label>Referência *</label><select id="cutReference" required><option value="">Selecione a referência</option></select></div>
+     <div class="field"><label>Quantidade de pares do corte *</label><input id="cutPairs" type="number" min="1" step="1" required inputmode="numeric" placeholder="Ex.: 120"></div>
      <div class="field"><label>Nome da oficina (opcional)</label><input id="cutWorkshop" placeholder="Oficina de destino"></div>
      <div class="field"><label>Observação</label><input id="cutNotes" placeholder="Ex.: pedido do Torra"></div>
-     <div class="field full"><label>Grade — quantidade de peças por tamanho</label><div class="sizegrid" id="sizeGrid"></div></div>
+     <div class="field full"><label>Grade — peças de cada tamanho por par</label><div class="sizegrid" id="sizeGrid"></div><small class="muted">Exemplo: tamanho 38 = 2; com 120 pares, serão 240 peças tamanho 38.</small></div>
     </div><div class="actions"><button type="submit" class="primary">Calcular aviamentos</button><button type="button" class="secondary" id="resetCut">Limpar grade</button></div></form>
     <div id="cutResults" class="hidden"><div class="divider"></div><h3 class="sectiontitle">Resultado do cálculo</h3><div id="cutSummary" class="notice"></div><div id="cutTable"></div><div class="actions"><button class="primary" id="saveCut">Salvar cálculo</button><button class="secondary" id="cutToIssue">Preparar saída para oficina</button></div></div>
     </div>
@@ -140,7 +141,7 @@ td{color:#172033}
   </section>
   <section class="page" id="page-oficinas">
    <div class="pagehead"><div><h2>Oficinas</h2><p>Consulte o que foi enviado, inclusive quantidades extras.</p></div></div>
-   <div class="card"><div class="notice">Toda saída com oficina preenchida aparece aqui. Use a descrição para identificar envios extras, devoluções ou observações.</div><div id="workshopTable"></div></div>
+   <div class="card"><div class="notice">Toda saída com oficina preenchida aparece aqui. Use a descrição para identificar envios extras, devoluções ou observações.</div><div id="workshopTable"></div><div class="divider"></div><h3 class="sectiontitle">Conferência: calculado × enviado</h3><p class="muted">Compara cada cálculo salvo com as saídas registradas para o mesmo número de corte. Para a comparação funcionar, registre a saída com o mesmo número de corte, oficina e produto correspondente.</p><div id="workshopReconcile"></div></div>
   </section>
   <section class="page" id="page-foto">
    <div class="pagehead"><div><h2>Cadastro por foto e voz</h2><p>Preencha dados com reconhecimento de texto ou fala e confira antes de salvar.</p></div></div>
@@ -319,6 +320,19 @@ function renderWorkshops(){
  dateFmt(m.date),esc(m.workshop),esc(m.productName),fmt(m.qty)+' '+esc(m.unit),esc(m.cut||'—'),esc(m.referenceName||'—'),esc(m.notes||'—')
  ]);
  $('workshopTable').innerHTML=table(['Data','Oficina','Aviamento','Quantidade enviada','Corte','Referência','Observação'],rows,'Ainda não há saídas vinculadas a oficinas.');
+ const reconcile=[];
+ [...state.cuts].slice().reverse().forEach(c=>{
+  (c.items||[]).forEach(item=>{
+   const planned=Number(item.amount)||0;
+   const related=(state.moves||[]).filter(m=>Boolean(String(c.number||'').trim()) && m.type==='saida' && String(m.cut||'').trim()===String(c.number||'').trim() && (!c.workshop || norm(m.workshop)===norm(c.workshop)) && norm(m.productName||'').includes(norm(item.name)) && norm(m.unit||'')===norm(item.unit||''));
+   const sent=related.reduce((sum,m)=>sum+Number(m.qty||0),0);
+   const missing=Math.max(0,planned-sent);
+   const extra=Math.max(0,sent-planned);
+   const status=sent===0?'NÃO ENVIADO':sent<planned?'FALTA '+fmt(missing)+' '+item.unit:sent===planned?'CONFERIDO':'SOBRA '+fmt(extra)+' '+item.unit;
+   reconcile.push([dateFmt(c.date),esc(c.number||'—'),esc(c.workshop||'—'),esc(item.name),fmt(planned)+' '+esc(item.unit),fmt(sent)+' '+esc(item.unit),`<strong>${fmt(missing)} ${esc(item.unit)}</strong>`,`<strong>${fmt(extra)} ${esc(item.unit)}</strong>`,status]);
+  });
+ });
+ $('workshopReconcile').innerHTML=table(['Data do cálculo','Corte','Oficina','Aviamento','Necessário','Enviado','Falta enviar','Sobra / a mais','Situação'],reconcile,'Salve um cálculo de corte para começar a conferência.');
 }
 function renderCuts(){
  $('cutsTable').innerHTML=table(['Data','Corte','Referência','Peças','Oficina','Resumo de aviamentos','Ações'],[...state.cuts].reverse().map(c=>[
@@ -359,10 +373,11 @@ document.addEventListener('click',e=>{
  if(view){const c=state.cuts.find(x=>x.id===view);if(c){alert(`Corte: ${c.number||'—'}\nReferência: ${c.referenceName}\nPeças: ${c.totalPieces}\n\n${c.items.map(i=>`${i.name}: ${fmt(i.amount)} ${i.unit}${i.detail?' ('+i.detail+')':''}`).join('\n')}`);}}
 });
 function buildSizeGrid(){ $('sizeGrid').innerHTML=SIZES.map(s=>`<div class="sizebox"><label for="size${s}">Tam. ${s}</label><input id="size${s}" type="number" min="0" step="1" value="0" inputmode="numeric"></div>`).join('');}
-function getGrade(){return SIZES.map(s=>({size:s,qty:Math.max(0,Number($('size'+s).value)||0)}));}
+function getGrade(){const pairs=Math.max(0,Math.floor(Number($('cutPairs').value)||0));return SIZES.map(s=>{const perPair=Math.max(0,Math.floor(Number($('size'+s).value)||0));return {size:s,perPair,qty:perPair*pairs};});}
 function calculateCut(){
  const ref=REFERENCES.find(r=>r.id===$('cutReference').value);if(!ref){toast('Selecione uma referência.');return null;}
- const grade=getGrade(), total=grade.reduce((a,x)=>a+x.qty,0);if(total<=0){toast('Informe a quantidade de peças em pelo menos um tamanho.');return null;}
+ const pairs=Math.max(0,Math.floor(Number($('cutPairs').value)||0));if(pairs<=0){toast('Informe a quantidade de pares do corte.');return null;}
+ const grade=getGrade(), total=grade.reduce((a,x)=>a+x.qty,0);if(total<=0){toast('Informe a grade: quantas peças de cada tamanho há em um par.');return null;}
  const items=[];
  for(const rawName of ref.items){
   const name=rawName;
@@ -390,15 +405,15 @@ function calculateCut(){
    items.push({name,amount:total,unit:'unidades',detail:'1 por peça assumido para etiqueta/aviamento unitário; confirmar consumo quando aplicável'});
   }
  }
- return {id:uid(),date:new Date().toISOString(),number:$('cutNumber').value.trim(),referenceId:ref.id,referenceName:ref.name,grade,totalPieces:total,workshop:$('cutWorkshop').value.trim(),notes:$('cutNotes').value.trim(),items,extraCalculations:[{name:'Botão de ferro — peso de referência',amount:total*2.1,unit:'g',detail:`${fmt(total*2.1/1000)} kg`},{name:'Botão coquinho — peso de referência',amount:total*.78,unit:'g',detail:`${fmt(total*.78/1000)} kg`}]};
+ return {id:uid(),date:new Date().toISOString(),number:$('cutNumber').value.trim(),referenceId:ref.id,referenceName:ref.name,pairs,grade,totalPieces:total,workshop:$('cutWorkshop').value.trim(),notes:$('cutNotes').value.trim(),items,extraCalculations:[{name:'Botão de ferro — peso de referência',amount:total*2.1,unit:'g',detail:`${fmt(total*2.1/1000)} kg`},{name:'Botão coquinho — peso de referência',amount:total*.78,unit:'g',detail:`${fmt(total*.78/1000)} kg`}]};
 }
 function renderCalc(c){
  $('cutResults').classList.remove('hidden');
- $('cutSummary').innerHTML=`<strong>${esc(c.referenceName)}</strong> · ${fmt(c.totalPieces)} peças · Corte: ${esc(c.number||'não informado')}. A grade considera tamanhos ${SIZES.join(', ')}.`;
+ $('cutSummary').innerHTML=`<strong>${esc(c.referenceName)}</strong> · ${fmt(c.pairs||0)} pares × grade = <strong>${fmt(c.totalPieces)} peças</strong> · Corte: ${esc(c.number||'não informado')}. ${c.grade.filter(g=>g.perPair>0).map(g=>`${g.size}: ${fmt(g.pairs??(g.perPair*(c.pairs||0)))} peças (${fmt(g.perPair??0)} por par)`).join(' · ')}.`;
  $('cutTable').innerHTML=table(['Aviamento','Necessidade calculada','Detalhes'],c.items.map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail||'—')])) + `<div class="divider"></div><h4>Cálculos adicionais de peso (não vinculados automaticamente à referência)</h4>` + table(['Item','Peso calculado','Equivalência'],(c.extraCalculations||[]).map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail)]));
 }
 $('cutForm').addEventListener('submit',e=>{e.preventDefault();currentCalc=calculateCut();if(currentCalc)renderCalc(currentCalc);});
-$('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0);$('cutNumber').value='';$('cutWorkshop').value='';$('cutNotes').value='';currentCalc=null;$('cutResults').classList.add('hidden');});
+$('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0);$('cutPairs').value='';$('cutNumber').value='';$('cutWorkshop').value='';$('cutNotes').value='';currentCalc=null;$('cutResults').classList.add('hidden');});
 $('saveCut').addEventListener('click',()=>{if(!currentCalc)return;if(state.cuts.some(c=>c.id===currentCalc.id)){toast('Este cálculo já foi salvo.');return;}state.cuts.push(currentCalc);persist();renderAll();toast('Cálculo salvo.');});
 $('cutToIssue').addEventListener('click',()=>{if(!currentCalc)return;goto('movimentar');$('moveType').value='saida';$('moveWorkshop').value=currentCalc.workshop;$('moveCut').value=currentCalc.number;$('moveReference').value=currentCalc.referenceId;toast('Dados do corte transferidos. Selecione o produto e confirme cada saída.');});
 $('moveForm').addEventListener('submit',e=>{
