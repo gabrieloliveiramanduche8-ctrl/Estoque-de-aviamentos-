@@ -409,8 +409,12 @@ function calculateCut(){
 }
 function renderCalc(c){
  $('cutResults').classList.remove('hidden');
- $('cutSummary').innerHTML=`<strong>${esc(c.referenceName)}</strong> · ${fmt(c.pairs||0)} pares × grade = <strong>${fmt(c.totalPieces)} peças</strong> · Corte: ${esc(c.number||'não informado')}. ${c.grade.filter(g=>g.perPair>0).map(g=>`${g.size}: ${fmt(g.pairs??(g.perPair*(c.pairs||0)))} peças (${fmt(g.perPair??0)} por par)`).join(' · ')}.`;
- $('cutTable').innerHTML=table(['Aviamento','Necessidade calculada','Detalhes'],c.items.map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail||'—')])) + `<div class="divider"></div><h4>Cálculos adicionais de peso (não vinculados automaticamente à referência)</h4>` + table(['Item','Peso calculado','Equivalência'],(c.extraCalculations||[]).map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail)]));
+ const gradeRows=(c.grade||[]).filter(g=>Number(g.perPair)>0).map(g=>({
+  Tamanho:g.size, 'Peças por par':g.perPair, 'Pares':c.pairs||0, 'Total de peças':Number(g.perPair)*(Number(c.pairs)||0)
+ }));
+ const gradeHtml=table(['Tamanho','Peças por par','Pares do corte','Total de peças'],gradeRows.map(g=>[g.Tamanho,fmt(g['Peças por par']),fmt(g.Pares),`<strong>${fmt(g['Total de peças'])}</strong>`]));
+ $('cutSummary').innerHTML=`<strong>${esc(c.referenceName)}</strong><br>Quantidade do corte: <strong>${fmt(c.pairs||0)} pares</strong><br>Total calculado: <strong>${fmt(c.totalPieces)} peças</strong><br>Número do corte: ${esc(c.number||'não informado')}<div class="divider"></div><strong>Conferência da grade</strong>${gradeHtml}`;
+ $('cutTable').innerHTML=table(['Aviamento','Necessidade calculada','Detalhes'],c.items.map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail||'—')])) + `<div class="divider"></div><h4>Pesos de referência dos botões (não somados ao consumo da referência)</h4>` + table(['Item','Peso calculado','Equivalência'],(c.extraCalculations||[]).map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail)]));
 }
 $('cutForm').addEventListener('submit',e=>{e.preventDefault();currentCalc=calculateCut();if(currentCalc)renderCalc(currentCalc);});
 $('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0);$('cutPairs').value='';$('cutNumber').value='';$('cutWorkshop').value='';$('cutNotes').value='';currentCalc=null;$('cutResults').classList.add('hidden');});
