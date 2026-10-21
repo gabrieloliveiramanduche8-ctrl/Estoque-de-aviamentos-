@@ -1,26 +1,31 @@
-# Arquivos corrigidos — Estoque de Aviamentos
+# Estoque de Aviamentos — pacote para Render + PostgreSQL
 
-## Arquivos incluídos
-- `package.json`: define as dependências e o comando `npm start`.
-- `server.js`: servidor Express, publicação do `index.html`, rota de saúde e teste opcional do PostgreSQL.
-- `.env.example`: exemplo sem credenciais.
+## Estrutura
+- `server.js`: API Express e integração PostgreSQL.
+- `package.json`: dependências e comando `npm start`.
+- `public/index.html`: interface atual com sincronização via `/api/state`.
 
-## Como instalar no GitHub pelo celular
-1. Abra o repositório correto e a branch `main`.
-2. Abra `package.json` e substitua o conteúdo pelo arquivo deste pacote; salve/commit.
-3. Abra `server.js` e substitua o conteúdo pelo arquivo deste pacote; salve/commit.
-4. Não substitua `index.html` nem apague a pasta `public`.
-5. No Render Web Service, use:
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - Root Directory: deixe vazio se os arquivos estiverem na raiz.
-6. Faça o deploy.
+## Configuração no Render
+No Web Service:
+- Build Command: `npm install`
+- Start Command: `npm start`
+- Root Directory: deixe vazio se `server.js` e `package.json` estiverem na raiz do repositório.
 
-## PostgreSQL
-O servidor inicia mesmo que `DATABASE_URL` ainda não esteja configurada. Para conectar o banco, crie/seleciona um PostgreSQL no Render e adicione `DATABASE_URL` em Environment Variables com a URL fornecida pelo Render. Não publique essa URL no GitHub nem a envie em mensagens.
+Em Environment, configure `DATABASE_URL` usando a **Internal Database URL** do PostgreSQL do Render, se o serviço e o banco estiverem na mesma região. Não publique nem compartilhe essa URL: ela contém credenciais.
 
-## Testes depois do deploy
-- `/api/health` deve responder com JSON e `ok: true`.
-- `/api/db-status` informa se a variável do banco está configurada e se a conexão funciona.
+## Instalação pelo GitHub no celular
+1. Baixe e extraia o ZIP.
+2. No repositório, mantenha `server.js` e `package.json` na raiz.
+3. Crie a pasta `public` e coloque `index.html` dentro dela. Se o seu projeto atual já usa `index.html` na raiz, o servidor também tenta servir essa versão como fallback.
+4. Faça commit dos arquivos e aguarde o deploy do Render.
 
-Importante: estes arquivos preparam o servidor e a conexão de diagnóstico. Eles não implementam, por si só, operações de estoque nem criam tabelas de negócio no banco. Isso depende do código e dos requisitos existentes do sistema.
+## Testes após o deploy
+- `/api/health`: deve retornar `ok: true` e `databaseConfigured: true`.
+- `/api/db-status`: deve retornar `connected: true`.
+- `/api/state`: na primeira execução, deve retornar `{"empty":true,"state":null}`; após salvar dados, retorna `empty:false` e o estado.
+
+## Observações importantes
+- A API usa uma tabela nova chamada `estoque_app_state_store` para evitar o conflito de coluna `state` na tabela antiga. Ela não apaga nem altera tabelas antigas.
+- O `index.html` guarda cache local e tenta sincronizar o estado com a API quando o servidor estiver conectado.
+- Faça backup do repositório antes de substituir arquivos.
+- Não envie comandos de exclusão nem apague o banco.
