@@ -463,15 +463,46 @@ $('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0
 $('saveCut').addEventListener('click',()=>{if(!currentCalc)return;if(state.cuts.some(c=>c.id===currentCalc.id)){toast('Este cálculo já foi salvo.');return;}state.cuts.push(currentCalc);persist();renderAll();toast('Cálculo salvo.');});
 function stockUnitFactor(product, calculatedUnit){
  const pu=norm(product.unit||'unidade'), cu=norm(calculatedUnit||'unidades');
+ const pn=norm(product.name||'');
  const unitAliases={unidades:'unidade',metros:'metro',gramas:'grama'};
  const base=unitAliases[cu]||cu;
  if(pu===base || (base==='unidade'&&pu==='unidade') || (base==='grama'&&pu==='grama')) return 1;
  if(base==='grama'&&pu==='kg') return 1000;
- if(base==='metro'&&pu==='rolo') return Number(product.packSize)||(norm(product.name).includes('elastic')?25:50);
- if(base==='metro'&&pu==='pacote') return Number(product.packSize)||(norm(product.name).includes('elastic')?375:0);
- if(base==='unidade'&&['pacote','caixa','rolo'].includes(pu)) return Number(product.packSize)||0;
+ // Embalagens padrão informadas pelo usuário: elástico = 15 rolos x 25 m;
+ // refletivo = 20 unidades x 50 m. O cadastro pode sobrescrever via packSize.
+ if(base==='metro'&&['pacote','caixa'].includes(pu)){
+  if(Number(product.packSize)>0) return Number(product.packSize);
+  if(pn.includes('elastic')) return pu==='pacote'?375:375;
+  if(pn.includes('refletivo')) return pu==='caixa'?1000:1000;
+ }
+ if(base==='metro'&&pu==='rolo') return Number(product.packSize)||(pn.includes('elastic')?25:50);
+ if(base==='metro'&&pu==='unidade'&&pn.includes('refletivo')) return Number(product.packSize)||50;
+ if(base==='metro'&&pu==='unidade'&&pn.includes('elastic')) return Number(product.packSize)||25;
+ if(base==='metro'&&pu==='pacote') return Number(product.packSize)||(pn.includes('elastic')?375:0);
+ if(base==='unidade'&&['pacote','caixa','rolo'].includes(pu)){
+  if(Number(product.packSize)>0) return Number(product.packSize);
+  if(pn.includes('elastic')&&pu==='pacote') return 15;
+  if(pn.includes('refletivo')&&pu==='caixa') return 20;
+  return 0;
+ }
  if(base==='grama'&&pu==='pacote') return Number(product.packSize)||0;
  return 0;
+}
+function packagingBreakdown(item, product){
+ const name=norm(item.name), unit=norm(item.unit), pu=norm(product.unit||'');
+ if(unit!=='metros') return '';
+ const meters=Number(item.amount)||0;
+ if(name==='elastic' || name==='elastico'){
+  const rolls=Math.ceil(meters/25), packs=Math.floor(rolls/15), loose=rolls%15;
+  const excess=rolls*25-meters;
+  return `Separação sugerida: ${packs} pacote(s) fechado(s) + ${loose} rolo(s) avulso(s), total ${rolls} rolos de 25 m. Sobra estimada após corte: ${fmt(excess)} m.`;
+ }
+ if(name==='refletivo'){
+  const units=Math.ceil(meters/50), boxes=Math.floor(units/20), loose=units%20;
+  const excess=units*50-meters;
+  return `Separação sugerida: ${boxes} caixa(s) fechada(s) + ${loose} unidade(s) avulsa(s), total ${units} unidades de 50 m. Sobra estimada após corte: ${fmt(excess)} m.`;
+ }
+ return '';
 }
 function updateBulkRow(index){
  const select=$(`[data-bulk-product="${index}"]`), qty=$(`[data-bulk-qty="${index}"]`), hint=$(`[data-bulk-conversion="${index}"]`);
@@ -482,7 +513,8 @@ function updateBulkRow(index){
  if(!(factor>0)){hint.textContent=`Unidade incompatível: o cálculo está em ${item.unit}, mas o estoque está em ${product.unit}. Informe o conteúdo por pacote/caixa ou cadastre uma unidade compatível.`;qty.value='0';return;}
  const converted=Number(item.amount)/factor;
  qty.value=converted.toFixed(3);
- hint.textContent=`Conversão: ${fmt(item.amount)} ${item.unit} = ${fmt(converted)} ${product.unit} (1 ${product.unit} = ${fmt(factor)} ${item.unit}).`;
+ const breakdown=packagingBreakdown(item,product);
+ hint.textContent=`Conversão: ${fmt(item.amount)} ${item.unit} = ${fmt(converted)} ${product.unit} (1 ${product.unit} = ${fmt(factor)} ${item.unit}).`+(breakdown?' '+breakdown:'');
 }
 function openBulkIssue(){
  if(!currentCalc)return;
@@ -498,7 +530,7 @@ function openBulkIssue(){
   const selectedProduct=products.find(p=>p.id===selected);
   const factor=selectedProduct?stockUnitFactor(selectedProduct,item.unit):1;
   const defaultQty=selectedProduct&&factor>0?Number(item.amount)/factor:Number(item.amount)||0;
-  return `<div class="card bulk-line" style="margin-bottom:10px" data-bulk-line="${index}"><div class="fieldgrid"><div class="field"><label>Aviamento calculado</label><input readonly value="${esc(item.name)}"></div><div class="field"><label>Necessidade calculada</label><input readonly value="${fmt(item.amount)} ${esc(item.unit)}"></div><div class="field"><label>Produto do estoque</label><select data-bulk-product="${index}"><option value="">Selecione o produto</option>${options}</select></div><div class="field"><label>Quantidade a retirar (unidade do estoque)</label><input data-bulk-qty="${index}" type="number" min="0" step="0.001" value="${defaultQty.toFixed(3)}"></div><div class="field full"><small class="muted" data-bulk-conversion="${index}">${selectedProduct&&factor>0?`Conversão: ${fmt(item.amount)} ${esc(item.unit)} = ${fmt(defaultQty)} ${esc(selectedProduct.unit)}`:'Selecione um produto compatível com a unidade calculada.'}</small></div></div></div>`;
+  return `<div class="card bulk-line" style="margin-bottom:10px" data-bulk-line="${index}"><div class="fieldgrid"><div class="field"><label>Aviamento calculado</label><input readonly value="${esc(item.name)}"></div><div class="field"><label>Necessidade calculada</label><input readonly value="${fmt(item.amount)} ${esc(item.unit)}"></div><div class="field"><label>Produto do estoque</label><select data-bulk-product="${index}"><option value="">Selecione o produto</option>${options}</select></div><div class="field"><label>Quantidade a retirar (unidade do estoque)</label><input data-bulk-qty="${index}" type="number" min="0" step="0.001" value="${defaultQty.toFixed(3)}"></div><div class="field full"><small class="muted" data-bulk-conversion="${index}">${selectedProduct&&factor>0?`Conversão: ${fmt(item.amount)} ${esc(item.unit)} = ${fmt(defaultQty)} ${esc(selectedProduct.unit)}. ${esc(packagingBreakdown(item,selectedProduct))}`:'Selecione um produto compatível com a unidade calculada.'}</small></div></div></div>`;
  }).join('');
  $('bulkIssueItems').innerHTML=rows||'<div class="empty">Este cálculo não possui aviamentos para enviar.</div>';
  (currentCalc.items||[]).forEach((item,index)=>{const sel=$(`[data-bulk-product="${index}"]`);if(sel)sel.addEventListener('change',()=>updateBulkRow(index));});
