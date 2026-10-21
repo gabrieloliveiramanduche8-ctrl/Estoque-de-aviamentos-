@@ -413,8 +413,16 @@ function calculateCut(){
   } else if(name==='Zíper 15 cm'){
    items.push({name,amount:total,unit:'unidades',detail:`distribuir pela cor cadastrada; pacotes conforme cadastro`});
   } else if(name==='Elástico'){
-   const meters=total*.8, rolls=Math.ceil(meters/25), packs=Math.ceil(rolls/15);
-   items.push({name,amount:meters,unit:'metros',detail:`${fmt(rolls)} rolos de 25 m; ${fmt(packs)} pacotes de 15 rolos`,rolls,packs});
+   const meters=total*.8;
+   const rolls=Math.ceil(meters/25);
+   const packs=Math.floor(rolls/15);
+   const looseRolls=rolls%15;
+   const openedPacks=looseRolls>0?1:0;
+   const remainingInOpenedPack=looseRolls>0?15-looseRolls:0;
+   items.push({
+    name, amount:meters, unit:'metros', rolls, packs, looseRolls, openedPacks, remainingInOpenedPack,
+    detail:`${fmt(meters)} m necessários; ${fmt(rolls)} rolos de 25 m = ${fmt(packs)} pacote(s) fechado(s)${looseRolls?` + abrir 1 pacote e retirar ${fmt(looseRolls)} rolo(s), sobrando ${fmt(remainingInOpenedPack)} rolo(s) nele`:''}`
+   });
   } else if(name==='Refletivo'){
    const meters=total*1, rolls=Math.ceil(meters/50);
    items.push({name,amount:meters,unit:'metros',detail:`${fmt(rolls)} rolos de 50 m`,rolls});
