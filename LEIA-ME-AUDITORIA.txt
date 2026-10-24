@@ -1,0 +1,28 @@
+# Estoque de Aviamentos — revisão técnica 1.1.0
+
+## Arquivos
+- `index.html`: interface
+- `server.js`: API Express, sessão assinada e PostgreSQL
+- `package.json`: dependências e inicialização
+
+## Variáveis obrigatórias no Render
+- `STOCK_ADMIN_PASSWORD`: crie uma senha administrativa forte (não coloque a senha no código).
+- `SESSION_SECRET`: valor aleatório longo, diferente da senha (pelo menos 32 bytes aleatórios).
+- `DATABASE_URL`: URL interna do PostgreSQL do Render.
+- `NODE_ENV=production`
+
+Se `STOCK_ADMIN_PASSWORD` ou `SESSION_SECRET` não estiverem configuradas, a interface não libera acesso autenticado. A senha não deve ser enviada neste chat nem colocada no GitHub.
+
+## Testes feitos localmente
+- `node --check server.js`
+- `node --check` no JavaScript inline de `index.html`
+- JSON de `package.json` válido
+- ZIP validado após criação
+
+## Atenção
+- A API de estado agora usa sessão assinada e revisão otimista (`If-Match`) para detectar sobrescrita concorrente.
+- Em caso de conflito HTTP 409, não continue salvando; recarregue e compare os dados.
+- A conexão real ao PostgreSQL/Render precisa ser verificada após o deploy.
+- O consumo do cordão continua manual porque o consumo correto por peça não foi fornecido.
+- A contagem física de pacote aberto ainda exige que o saldo inicial seja cadastrado na unidade correta; não é um sistema de rastreamento de cada pacote físico por identificador.
+- Faça backup dos dados antes de substituir arquivos.
