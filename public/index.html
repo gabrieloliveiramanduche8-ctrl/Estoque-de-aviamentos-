@@ -123,7 +123,11 @@ html[data-theme="light"] .productrow small{color:#64748b}
   <button class="navbtn" data-page="movimentar">⇄ Movimentações</button>
   <button class="navbtn" data-page="oficinas">▤ Oficinas</button>
   <button class="navbtn" data-page="foto">▧ Foto e voz</button>
+  <button class="navbtn" data-page="reservas">▣ Reservas OC</button>
+  <button class="navbtn" data-page="embalagens">▤ Embalagens</button>
+  <button class="navbtn" data-page="previsao">◷ Previsão</button>
   <button class="navbtn" data-page="inventario">✓ Inventário</button>
+  <button class="navbtn" data-page="assistente">✦ Assistente</button>
   <button class="navbtn" data-page="relatorios">▤ Relatórios</button>
   <button class="navbtn" data-page="scanner">▦ Scanner QR</button>
   <button class="navbtn" data-page="usuarios">♙ Usuários / Nuvem</button>
@@ -137,7 +141,7 @@ html[data-theme="light"] .productrow small{color:#64748b}
     <div class="card span3"><div class="statlabel">Cortes calculados</div><div class="statvalue" id="statCuts">0</div><div class="statnote">Cálculos salvos</div></div>
     <div class="card span3"><div class="statlabel">Saídas registradas</div><div class="statvalue" id="statOut">0</div><div class="statnote">Movimentações de saída</div></div>
     <div class="card span12 alert-panel"><div class="alert-head"><div><h3 class="sectiontitle">⚠ Central de alertas</h3><p class="muted alert-sub">Avisos calculados com base no saldo atual e no mínimo definido por produto.</p></div><span id="alertCount" class="alert-count">0 alertas</span></div><div id="stockAlerts" class="alert-list"></div></div>
-    <div class="card span12"><h3 class="sectiontitle">📊 Aviamentos por categoria</h3><p class="muted" style="margin-top:-8px">Distribuição do saldo atual por categoria. O gráfico atualiza ao cadastrar produtos ou registrar movimentações.</p><div id="stockCategoryChart" class="category-chart" role="img" aria-label="Gráfico de estoque por categoria"></div></div>
+    <div class="card span12"><h3 class="sectiontitle">📊 Estoque por categoria</h3><p class="muted" style="margin-top:-8px">Saldo separado por categoria e unidade; metros, unidades, rolos e caixas nunca são somados juntos.</p><div id="stockCategoryChart" class="category-chart" role="img" aria-label="Gráfico de estoque por categoria"></div></div><div class="card span12"><h3 class="sectiontitle">📈 Atividade de movimentações</h3><p class="muted" style="margin-top:-8px">Quantidade de registros de entrada e saída nos últimos 7 dias. Conta movimentações, sem misturar unidades incompatíveis.</p><div id="movementActivityChart" class="category-chart" role="img" aria-label="Gráfico de atividade de movimentações"></div></div>
     <div class="card span7"><h3 class="sectiontitle">Estoque recente</h3><div id="homeStock"></div></div>
     <div class="card span5"><h3 class="sectiontitle">Atalhos</h3><div class="actions" style="margin-top:0"><button class="secondary" data-goto="produto">Cadastrar produto</button><button class="secondary" data-goto="corte">Calcular corte</button><button class="secondary" data-goto="foto">Foto ou voz</button></div><div class="divider"></div><div class="notice">Os dados ficam salvos neste navegador/dispositivo. Use “Exportar dados” para guardar uma cópia.</div></div>
     <div class="card span12"><h3 class="sectiontitle">Últimas movimentações</h3><div id="homeMoves"></div></div>
@@ -168,6 +172,7 @@ html[data-theme="light"] .productrow small{color:#64748b}
    <div class="pagehead"><div><h2>Cálculo por corte</h2><p>Informe referência, número do corte e grade para calcular os aviamentos previstos.</p></div></div>
    <div class="grid">
     <div class="card span12"><form id="cutForm"><div class="fieldgrid">
+     <div class="field"><label>Número da OC (opcional)</label><input id="cutOC" placeholder="Ex.: OC-2080"></div>
      <div class="field"><label>Número do corte</label><input id="cutNumber" placeholder="Ex.: 00125"></div>
      <div class="field"><label>Referência *</label><select id="cutReference" required><option value="">Selecione a referência</option></select></div>
      <div class="field"><label>Quantidade de pares do corte *</label><input id="cutPairs" type="number" min="1" step="1" required inputmode="numeric" placeholder="Ex.: 120"></div>
@@ -175,7 +180,7 @@ html[data-theme="light"] .productrow small{color:#64748b}
      <div class="field"><label>Observação</label><input id="cutNotes" placeholder="Ex.: pedido do Torra"></div>
      <div class="field full"><label>Grade — peças de cada tamanho por par</label><div class="sizegrid" id="sizeGrid"></div><small class="muted">Exemplo: tamanho 38 = 2; com 120 pares, serão 240 peças tamanho 38.</small></div>
     </div><div class="actions"><button type="submit" class="primary">Calcular aviamentos</button><button type="button" class="secondary" id="resetCut">Limpar grade</button></div></form>
-    <div id="cutResults" class="hidden"><div class="divider"></div><h3 class="sectiontitle">Resultado do cálculo</h3><div id="cutSummary" class="notice"></div><div id="cutTable"></div><div class="actions"><button class="primary" id="saveCut">Salvar cálculo</button><button class="secondary" id="cutToIssue">Preparar saída para oficina</button></div><div id="bulkIssuePanel" class="card hidden" style="margin-top:16px"><h3 class="sectiontitle">Enviar corte completo para oficina</h3><p class="muted">Confira os produtos e as quantidades. Todos os itens serão registrados juntos, somente após validar o estoque.</p><div class="fieldgrid"><div class="field"><label>Oficina *</label><input id="bulkWorkshop" placeholder="Nome da oficina"></div><div class="field"><label>Número do corte</label><input id="bulkCutNumber" readonly></div></div><div id="bulkIssueItems" style="margin-top:14px"></div><div class="actions"><button type="button" class="primary" id="confirmBulkIssue">Confirmar saída de todos os itens</button><button type="button" class="ghost" id="cancelBulkIssue">Cancelar</button></div></div></div>
+    <div id="cutResults" class="hidden"><div class="divider"></div><h3 class="sectiontitle">Resultado do cálculo</h3><div id="cutSummary" class="notice"></div><div id="cutTable"></div><div class="actions"><button class="primary" id="saveCut">Salvar cálculo</button><button class="secondary" id="cutToIssue">Preparar saída para oficina</button></div><div id="bulkIssuePanel" class="card hidden" style="margin-top:16px"><h3 class="sectiontitle">Enviar material para oficina</h3><p class="muted">Confira os produtos e as quantidades. Informe o que realmente será enviado. Use zero se não houver algum item; o sistema registra a pendência sem baixar material inexistente.</p><div class="fieldgrid"><div class="field"><label>Oficina *</label><input id="bulkWorkshop" placeholder="Nome da oficina"></div><div class="field"><label>Número do corte</label><input id="bulkCutNumber" readonly></div><div class="field"><label>Número da OC</label><input id="bulkOC" readonly></div></div><div id="bulkIssueItems" style="margin-top:14px"></div><div class="actions"><button type="button" class="primary" id="confirmBulkIssue">Confirmar envio (pode ser parcial)</button><button type="button" class="ghost" id="cancelBulkIssue">Cancelar</button></div></div></div>
     </div>
     <div class="card span12"><h3 class="sectiontitle">Cálculos salvos</h3><div id="cutsTable"></div></div>
    </div>
@@ -192,7 +197,7 @@ html[data-theme="light"] .productrow small{color:#64748b}
      <div class="field"><label>Referência (opcional)</label><select id="moveReference"><option value="">Sem referência</option></select></div>
      <div class="field full"><label>Descrição / motivo</label><input id="moveNotes" placeholder="Ex.: envio extra para oficina"></div>
     </div><div class="actions"><button class="primary" type="submit">Confirmar movimentação</button></div></form></div>
-    <div class="card span6"><h3 class="sectiontitle">Importante</h3><div class="notice">Referência e número do corte são opcionais nas movimentações avulsas, conforme solicitado.</div><div class="notice warning">Saídas maiores que o saldo disponível serão bloqueadas para evitar estoque negativo.</div><p class="muted">A movimentação fica registrada no histórico deste navegador. Elástico, refletivo e cós vêm pré-cadastrados em metros para que o consumo calculado possa ser baixado corretamente. Se cadastrar esses produtos em rolos/pacotes, será necessário converter a quantidade antes da saída.</p></div>
+    <div class="card span6"><h3 class="sectiontitle">Importante</h3><div class="notice">Referência e número do corte são opcionais nas movimentações avulsas, conforme solicitado.</div><div class="notice warning">Saídas maiores que o saldo disponível serão bloqueadas para evitar estoque negativo.</div><p class="muted">A saída avulsa aceita a quantidade que realmente será enviada, desde que exista saldo livre. Para cortes, também será possível enviar parcialmente, inclusive zero de um item, registrando a falta como pendência sem criar estoque negativo.</p></div>
     <div class="card span12"><h3 class="sectiontitle">Histórico completo</h3><div id="movesTable"></div></div>
    </div>
   </section>
@@ -205,6 +210,53 @@ html[data-theme="light"] .productrow small{color:#64748b}
    <div class="grid">
     <div class="card span6"><h3 class="sectiontitle">📷 Ler lista por foto</h3><p class="muted">Selecione ou tire uma foto da lista. O sistema tentará ler o texto usando OCR no navegador. A qualidade depende da imagem e do suporte do dispositivo.</p><label class="fileinput">Escolher/tirar foto<input type="file" id="photoFile" accept="image/*" capture="environment" style="margin-top:8px"></label><div class="actions"><button class="secondary" id="runOcr">Ler texto da foto</button></div><div class="field" style="margin-top:12px"><label>Texto reconhecido (revise antes de usar)</label><textarea id="ocrText" rows="7" placeholder="O texto reconhecido aparecerá aqui. Você também pode colar uma lista manualmente."></textarea></div><div class="actions"><button class="primary" id="parseOcr">Interpretar lista</button></div><div id="photoDraft"></div></div>
     <div class="card span6"><h3 class="sectiontitle">🎙️ Cadastro por voz</h3><p class="muted">Fale o nome do produto, a quantidade e a unidade. O reconhecimento de voz pode depender do navegador, da conexão e da permissão do microfone.</p><div class="actions"><button class="primary" id="startVoice">🎙️ Começar a falar</button><button class="ghost" id="stopVoice">Parar</button></div><div class="field" style="margin-top:12px"><label>Texto reconhecido / comando</label><textarea id="voiceText" rows="4" placeholder="Ex.: cadastrar 500 unidades de zíper preto"></textarea></div><div class="actions"><button class="secondary" id="interpretVoice">Interpretar comando</button></div><div id="voiceDraft"></div><div class="divider"></div><div class="notice">O sistema não confirma automaticamente uma entrada ou saída apenas por reconhecer a fala. Você revisa os campos e confirma a operação.</div></div>
+   </div>
+  </section>
+
+
+  <section class="page" id="page-reservas">
+   <div class="pagehead"><div><h2>Reservas por OC</h2><p>Reserva virtual de materiais. Reservar não altera o saldo físico; o disponível considera as reservas ativas.</p></div></div>
+   <div class="grid">
+    <div class="card span6"><h3 class="sectiontitle">Nova reserva</h3><form id="reservationForm"><div class="fieldgrid">
+     <div class="field"><label>Número da OC *</label><input id="resOC" required maxlength="80" placeholder="Ex.: OC-2080"></div>
+     <div class="field"><label>Produto *</label><select id="resProduct" required></select></div>
+     <div class="field"><label>Quantidade a reservar *</label><input id="resQty" type="number" min="0.001" step="0.001" required></div>
+     <div class="field"><label>Observação</label><input id="resNotes" maxlength="250" placeholder="Opcional"></div>
+    </div><div class="actions"><button class="primary" type="submit">Reservar material</button></div></form><div id="resStatus" class="notice">Reservas ativas reduzem o saldo disponível, mas não baixam o estoque físico.</div></div>
+    <div class="card span6"><h3 class="sectiontitle">Disponibilidade</h3><div id="reservationAvailability"></div></div>
+    <div class="card span12"><h3 class="sectiontitle">Reservas registradas</h3><div id="reservationTable"></div></div>
+   </div>
+  </section>
+  <section class="page" id="page-embalagens">
+   <div class="pagehead"><div><h2>Rastreio de embalagens</h2><p>Controle identificadores físicos de rolos, caixas e pacotes. Não converte unidades nem altera o saldo geral automaticamente.</p></div></div>
+   <div class="grid">
+    <div class="card span6"><h3 class="sectiontitle">Cadastrar embalagem física</h3><form id="packageForm"><div class="fieldgrid">
+     <div class="field"><label>Código único *</label><input id="pkgCode" required maxlength="80" placeholder="Ex.: ELAST-ROLO-001"></div>
+     <div class="field"><label>Produto *</label><select id="pkgProduct" required></select></div>
+     <div class="field"><label>Tipo de embalagem *</label><select id="pkgType"><option>Rolo</option><option>Caixa</option><option>Pacote</option><option>Outro</option></select></div>
+     <div class="field"><label>Quantidade inicial *</label><input id="pkgQty" type="number" min="0" step="0.001" required></div>
+     <div class="field"><label>Unidade da quantidade *</label><select id="pkgUnit"><option value="unidade">unidade</option><option value="metro">metro</option><option value="grama">grama</option><option value="kg">kg</option><option value="rolo">rolo</option><option value="caixa">caixa</option><option value="pacote">pacote</option></select></div>
+     <div class="field"><label>Localização</label><input id="pkgLocation" maxlength="100" placeholder="Ex.: prateleira A2"></div>
+    </div><div class="actions"><button class="primary" type="submit">Cadastrar embalagem</button></div></form><div class="notice warning">A quantidade da embalagem é registrada exatamente na unidade informada. O sistema não converte para outra unidade nem soma automaticamente ao estoque geral.</div></div>
+    <div class="card span6"><h3 class="sectiontitle">Atualizar embalagem</h3><form id="packageUpdateForm"><div class="fieldgrid">
+     <div class="field"><label>Embalagem *</label><select id="pkgUpdateId" required></select></div>
+     <div class="field"><label>Nova quantidade restante *</label><input id="pkgRemaining" type="number" min="0" step="0.001" required></div>
+     <div class="field full"><label>Motivo da atualização *</label><input id="pkgUpdateReason" required maxlength="250" placeholder="Ex.: consumo parcial confirmado"></div>
+    </div><div class="actions"><button class="primary" type="submit">Salvar atualização</button></div></form></div>
+    <div class="card span12"><h3 class="sectiontitle">Embalagens rastreadas</h3><div id="packageTable"></div></div>
+   </div>
+  </section>
+  <section class="page" id="page-previsao">
+   <div class="pagehead"><div><h2>Previsão de reposição</h2><p>Estimativa baseada nas saídas registradas. É uma projeção simples, não uma garantia de demanda futura.</p></div><button class="secondary" id="refreshForecast">Atualizar previsão</button></div>
+   <div class="notice">A previsão usa apenas saídas históricas na mesma unidade do produto. Não cria consumo por peça nem conversões de embalagem. Com pouco histórico, a estimativa pode ser limitada.</div>
+   <div class="card"><div class="fieldgrid"><div class="field"><label>Janela histórica</label><select id="forecastWindow"><option value="7">7 dias</option><option value="30" selected>30 dias</option><option value="90">90 dias</option></select></div><div class="field"><label>Prazo de reposição (dias)</label><input id="forecastLeadDays" type="number" min="0" max="365" step="1" value="7"></div><div class="field"><label>Margem de segurança (dias)</label><input id="forecastSafetyDays" type="number" min="0" max="365" step="1" value="7"></div></div><div class="notice" style="margin-top:12px">A quantidade sugerida é calculada na unidade cadastrada do produto, usando a média de saídas e o prazo + margem informados. Ela não converte metros, unidades, rolos ou caixas.</div><div id="forecastTable" style="margin-top:14px"></div></div>
+  </section>
+  <section class="page" id="page-assistente">
+   <div class="pagehead"><div><h2>Assistente do estoque</h2><p>Consulta local dos dados atuais; não envia dados para um serviço de IA externo.</p></div></div>
+   <div class="card"><div class="notice">Este assistente usa consultas e regras locais predefinidas. Ainda não é um modelo de IA generativa. Ele não altera estoque, cria reservas nem registra movimentações.</div>
+    <div class="field"><label>Faça uma pergunta sobre o estoque</label><textarea id="assistantQuestion" rows="3" placeholder="Ex.: quais produtos estão com saldo baixo? ou quanto zíper preto temos?"></textarea></div>
+    <div class="actions"><button class="primary" id="askAssistant">Consultar</button><button class="secondary" id="assistantClear">Limpar</button></div><div id="assistantAnswer" class="notice" style="margin-top:14px">Digite uma pergunta para consultar os dados locais.</div>
+    <div class="actions"><button class="ghost assistant-sample" data-q="Quais produtos estão abaixo do mínimo?">Estoque baixo</button><button class="ghost assistant-sample" data-q="Quais são as últimas movimentações?">Últimas movimentações</button><button class="ghost assistant-sample" data-q="Quais são as reservas ativas?">Reservas ativas</button></div>
    </div>
   </section>
 
@@ -226,7 +278,7 @@ html[data-theme="light"] .productrow small{color:#64748b}
   </section>
  </main>
 </div>
-<div class="footer">Estoque de Aviamentos • Versão inicial independente • Os dados são armazenados localmente neste navegador.</div>
+<div class="footer">Estoque de Aviamentos • Versão 1.3.0 — módulos de planejamento • Os dados são armazenados localmente neste navegador.</div>
 <div id="toast" class="toast hidden" role="status"></div>
 <div id="modalRoot"></div>
 </div>
@@ -268,7 +320,7 @@ let currentCalc = null;
 let currentPhoto = null;
 let voiceRecognition = null;
 function loadState(){
- try { const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); return {products:Array.isArray(s.products)?s.products:[],moves:Array.isArray(s.moves)?s.moves:[],cuts:Array.isArray(s.cuts)?s.cuts:[],audits:Array.isArray(s.audits)?s.audits:[]}; }
+ try { const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); return {products:Array.isArray(s.products)?s.products:[],moves:Array.isArray(s.moves)?s.moves:[],cuts:Array.isArray(s.cuts)?s.cuts:[],audits:Array.isArray(s.audits)?s.audits:[],reservations:Array.isArray(s.reservations)?s.reservations:[],packages:Array.isArray(s.packages)?s.packages:[]}; }
  catch(e){return {products:[],moves:[],cuts:[],audits:[]};}
 }
 function persist(){
@@ -302,7 +354,7 @@ function productMatch(name,color=''){
  return sameName.find(p=>!norm(p.color||'')) || (sameName.length===1?sameName[0]:undefined);
 }
 function norm(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
-function renderAll(){renderStats();renderStock();renderProductSelects();renderMoves();renderCuts();renderHome();renderWorkshops();refreshInvProducts();renderAuditHistory();renderReports();}
+function renderAll(){renderStats();renderStock();renderProductSelects();renderMoves();renderCuts();renderHome();renderWorkshops();refreshInvProducts();renderAuditHistory();renderReports();renderReservations();renderPackages();renderForecast();}
 function renderStats(){
  $('statProducts').textContent=state.products.length;
  $('statStock').textContent=String(stockTotal());const stockNote=$('statStock')?.parentElement?.querySelector('.statnote');if(stockNote)stockNote.textContent=state.products.length?'Produtos cadastrados; saldos separados por unidade: '+stockUnitSummary():'Nenhum produto cadastrado';
@@ -313,6 +365,7 @@ function renderHome(){
  const products=[...state.products].sort((a,b)=>Number(a.qty)-Number(b.qty)).slice(0,7);
  $('homeStock').innerHTML=products.length?products.map(p=>`<div class="productrow"><div><strong>${esc(p.name)} ${p.color?'<span class="muted">· '+esc(p.color)+'</span>':''}</strong><small>${esc(p.unit)}${p.notes?' · '+esc(p.notes):''}</small></div><span class="pill ${Number(p.qty)<=0?'badge-low':'badge-ok'}">${fmt(p.qty)} ${esc(p.unit)}</span></div>`).join(''):'<div class="empty">Nenhum produto cadastrado. Use “Adicionar lista de aviamentos” para começar.</div>';
  renderCategoryChart();
+ renderMovementActivityChart();
  renderStockAlerts();
  const ms=[...state.moves].slice(-6).reverse();
  $('homeMoves').innerHTML=ms.length?table(['Data','Tipo','Produto','Quantidade','Destino'],ms.map(m=>[dateFmt(m.date),m.type==='entrada'?'Entrada':'Saída',m.productName,fmt(m.qty)+' '+m.unit,m.workshop||'—'])):'<div class="empty">Ainda não há movimentações.</div>';
@@ -328,6 +381,16 @@ function renderStockAlerts(){
   const msg=critical?'Saldo zerado':(hasMin?'Mínimo: '+fmt(Number(p.minQty))+' '+esc(p.unit):'Defina um mínimo para este produto');
   return `<div class="alert-item ${critical?'critical':''}"><div class="alert-icon">${critical?'!':'⌁'}</div><div class="alert-copy"><strong>${esc(p.name)}${p.color?' · '+esc(p.color):''}</strong><small>${msg} · Atual: ${fmt(q)} ${esc(p.unit)}</small></div><span class="alert-status">${critical?'ZERADO':'BAIXO'}</span></div>`;
  }).join('');
+}
+function renderMovementActivityChart(){
+ const el=$('movementActivityChart');if(!el)return;
+ const days=[];const today=new Date();today.setHours(0,0,0,0);
+ for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(today.getDate()-i);const key=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');days.push({key,label:d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit'}),entrada:0,saida:0});}
+ const index=new Map(days.map(d=>[d.key,d]));
+ (state.moves||[]).forEach(m=>{const t=new Date(m.date);if(!Number.isFinite(t.getTime()))return;const localDay=new Date(t.getFullYear(),t.getMonth(),t.getDate());const key=[localDay.getFullYear(),String(localDay.getMonth()+1).padStart(2,'0'),String(localDay.getDate()).padStart(2,'0')].join('-');const d=index.get(key);if(d&&(m.type==='entrada'||m.type==='saida'))d[m.type]++;});
+ const max=Math.max(1,...days.map(d=>Math.max(d.entrada,d.saida)));
+ if(!state.moves.length){el.innerHTML='<div class="chart-empty">Ainda não há movimentações para comparar.</div>';return;}
+ el.innerHTML=days.map(d=>`<div class="chart-row"><div class="chart-label">${esc(d.label)}<div class="muted" style="font-size:11px;font-weight:400">${d.entrada+d.saida} registro(s)</div></div><div style="display:grid;gap:4px"><div class="chart-track" title="Entradas: ${d.entrada}"><div class="chart-bar" style="width:${d.entrada/max*100}%;background:linear-gradient(90deg,#10b981,#6ee7b7)"></div></div><div class="chart-track" title="Saídas: ${d.saida}"><div class="chart-bar" style="width:${d.saida/max*100}%;background:linear-gradient(90deg,#f97316,#fdba74)"></div></div></div><div class="chart-value">+${d.entrada} / −${d.saida}</div></div>`).join('')+'<div class="chart-legend">🟢 Entradas · 🟠 Saídas · Cada barra representa quantidade de registros, não quantidade de material.</div>';
 }
 function renderCategoryChart(){
  const el=$('stockCategoryChart');
@@ -479,7 +542,7 @@ function calculateCut(){
    items.push({name,amount:total,unit:'unidades',detail:'1 por peça assumido para etiqueta/aviamento unitário; confirmar consumo quando aplicável'});
   }
  }
- return {id:uid(),date:new Date().toISOString(),number:$('cutNumber').value.trim(),referenceId:ref.id,referenceName:ref.name,pairs,grade,totalPieces:total,workshop:$('cutWorkshop').value.trim(),notes:$('cutNotes').value.trim(),items,extraCalculations:[{name:'Botão de ferro — peso de referência',amount:total*2.1,unit:'g',detail:`${fmt(total*2.1/1000)} kg`},{name:'Botão coquinho — peso de referência',amount:total*.78,unit:'g',detail:`${fmt(total*.78/1000)} kg`}]};
+ return {id:uid(),date:new Date().toISOString(),oc:$('cutOC')?.value.trim()||'',number:$('cutNumber').value.trim(),referenceId:ref.id,referenceName:ref.name,pairs,grade,totalPieces:total,workshop:$('cutWorkshop').value.trim(),notes:$('cutNotes').value.trim(),items,extraCalculations:[{name:'Botão de ferro — peso de referência',amount:total*2.1,unit:'g',detail:`${fmt(total*2.1/1000)} kg`},{name:'Botão coquinho — peso de referência',amount:total*.78,unit:'g',detail:`${fmt(total*.78/1000)} kg`}]};
 }
 function renderCalc(c){
  $('cutResults').classList.remove('hidden');
@@ -501,7 +564,7 @@ function renderCalc(c){
  $('cutTable').innerHTML=`<div class="aviamento-results">${itemCards}</div><div class="divider"></div><h4>Pesos de referência dos botões (não somados ao consumo da referência)</h4>` + table(['Item','Peso calculado','Equivalência'],(c.extraCalculations||[]).map(i=>[esc(i.name),`<strong>${fmt(i.amount)} ${esc(i.unit)}</strong>`,esc(i.detail)]));
 }
 $('cutForm').addEventListener('submit',e=>{e.preventDefault();currentCalc=calculateCut();if(currentCalc)renderCalc(currentCalc);});
-$('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0);$('cutPairs').value='';$('cutNumber').value='';$('cutWorkshop').value='';$('cutNotes').value='';currentCalc=null;$('cutResults').classList.add('hidden');});
+$('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0);$('cutPairs').value='';$('cutOC').value='';$('cutNumber').value='';$('cutWorkshop').value='';$('cutNotes').value='';currentCalc=null;$('cutResults').classList.add('hidden');});
 $('saveCut').addEventListener('click',()=>{if(!currentCalc)return;if(state.cuts.some(c=>c.id===currentCalc.id)){toast('Este cálculo já foi salvo.');return;}const number=String(currentCalc.number||'').trim();if(number&&state.cuts.some(c=>String(c.number||'').trim()===number)){toast('Já existe um cálculo salvo com este número de corte. Use outro número ou consulte o cálculo existente.');return;}state.cuts.push(currentCalc);persist();renderAll();toast('Cálculo salvo.');});
 function stockUnitFactor(product, calculatedUnit){
  const pu=norm(product.unit||'unidade'), cu=norm(calculatedUnit||'unidades');
@@ -588,7 +651,7 @@ function updateBulkRow(index){
 function openBulkIssue(){
  if(!currentCalc)return;
  const panel=$('bulkIssuePanel');panel.classList.remove('hidden');
- $('bulkWorkshop').value=currentCalc.workshop||'';$('bulkCutNumber').value=currentCalc.number||'Não informado';
+ $('bulkWorkshop').value=currentCalc.workshop||'';$('bulkCutNumber').value=currentCalc.number||'Não informado';$('bulkOC').value=currentCalc.oc||'';
  const products=state.products;
  const rows=(currentCalc.items||[]).map((item,index)=>{
   const itemName=norm(item.name);
@@ -619,33 +682,42 @@ $('confirmBulkIssue').addEventListener('click',()=>{
  const workshop=$('bulkWorkshop').value.trim();if(!workshop)return toast('Informe o nome da oficina.');
  const lines=(currentCalc.items||[]).map((item,index)=>({item,index,productId:$(`[data-bulk-product="${index}"]`)?.value||'',qty:Number($(`[data-bulk-qty="${index}"]`)?.value)}));
  if(!lines.length)return toast('Este corte não possui aviamentos para enviar.');
- const incomplete=lines.find(line=>!line.productId||!Number.isFinite(line.qty)||line.qty<=0);
+ const incomplete=lines.find(line=>!line.productId||!Number.isFinite(line.qty)||line.qty<0);
  if(incomplete)return toast(`Envio cancelado: preencha produto e quantidade para todos os aviamentos, incluindo ${incomplete.item.name}. Nenhuma saída foi registrada.`);
  const totalsByProduct=new Map();
  for(const line of lines){
   const p=state.products.find(x=>x.id===line.productId);if(!p)return toast(`Selecione o produto do estoque para ${line.item.name}.`);
-  if(!Number.isFinite(line.qty)||line.qty<=0)return toast(`Confira a quantidade de ${line.item.name}.`);
+  if(!Number.isFinite(line.qty)||line.qty<0)return toast(`Confira a quantidade de ${line.item.name}. Informe zero se não houver material para enviar.`);
   const factor=stockUnitFactor(p,line.item.unit);if(!(factor>0))return toast(`Unidade incompatível para ${line.item.name}. Cadastre conteúdo por pacote/caixa ou escolha produto em ${line.item.unit}.`);
   const expected=line.item.requiresManual?null:stockWithdrawalQty(line.item,p);
-  if(expected!==null && Math.abs(line.qty-expected)>0.0005)return toast(`Quantidade de ${line.item.name} diferente do cálculo. Esperado: ${fmt(expected)} ${p.unit}. Ajuste a regra ou revise o produto antes de enviar.`);
-  const baseQty=line.qty*factor;line.baseQty=baseQty;line.factor=factor;
+  // Quantidade enviada pode ser parcial ou extra. A necessidade calculada é referência; o saldo disponível continua sendo respeitado.
+  const baseQty=line.qty*factor;line.baseQty=baseQty;line.factor=factor;line.expectedQty=expected;line.missingQty=expected===null?null:Math.max(0,expected-line.qty);line.extraQty=expected===null?null:Math.max(0,line.qty-expected);
   totalsByProduct.set(p.id,(totalsByProduct.get(p.id)||0)+line.qty);
  }
- for(const [productId,totalQty] of totalsByProduct){const p=state.products.find(x=>x.id===productId);if(totalQty>Number(p.qty)+1e-9)return toast(`Saldo insuficiente para ${p.name}. Total solicitado: ${fmt(totalQty)} ${p.unit}; disponível: ${fmt(p.qty)} ${p.unit}.`);}
+ for(const [productId,totalQty] of totalsByProduct){const p=state.products.find(x=>x.id===productId);const available=currentCalc.oc?availableForOC(p,currentCalc.oc):availableQty(p);if(totalQty>available+1e-9)return toast(`Saldo livre insuficiente para ${p.name}. Você informou ${fmt(totalQty)} ${p.unit}, mas há ${fmt(available)} ${p.unit} disponíveis. Reduza a quantidade para registrar uma saída parcial.`);}
  if(bulkIssueInProgress)return;
  bulkIssueInProgress=true;
  const now=new Date().toISOString();
+ const dispatchLines=[];
  for(const line of lines){
   const p=state.products.find(x=>x.id===line.productId),before=Number(p.qty)||0;
+  const expected=line.expectedQty;
+  dispatchLines.push({productId:p.id,productName:productLabel(p),unit:p.unit,required:expected, sent:line.qty, missing:line.missingQty, extra:line.extraQty, workshop, oc:currentCalc.oc||'', cut:currentCalc.number||'', date:now});
+  if(line.qty<=0)continue;
   p.qty=Number((before-line.qty).toFixed(3));
-  state.moves.push({id:uid(),date:now,type:'saida',productId:p.id,productName:productLabel(p),qty:line.qty,unit:p.unit,baseQty:line.baseQty,baseUnit:line.item.unit,workshop,cut:currentCalc.number||'',referenceId:currentCalc.referenceId||'',referenceName:currentCalc.referenceName||'',notes:'Envio do corte completo para oficina',balanceBefore:before,balanceAfter:Number(p.qty),actor:'Local user'});
+  const shortage=line.missingQty>0?`Envio parcial; faltam ${fmt(line.missingQty)} ${p.unit}.`:'';
+  const extra=line.extraQty>0?` Envio extra de ${fmt(line.extraQty)} ${p.unit}; conferir sobra na oficina.`:'';
+  state.moves.push({id:uid(),date:now,type:'saida',productId:p.id,productName:productLabel(p),qty:line.qty,unit:p.unit,baseQty:line.baseQty,baseUnit:line.item.unit,workshop,oc:currentCalc.oc||'',cut:currentCalc.number||'',referenceId:currentCalc.referenceId||'',referenceName:currentCalc.referenceName||'',notes:`Envio de corte. ${shortage}${extra}`.trim(),balanceBefore:before,balanceAfter:Number(p.qty),actor:'Local user'});
  }
- persist();renderAll();$('bulkIssuePanel').classList.add('hidden');bulkIssueInProgress=false;toast(`Saída registrada: ${lines.length} item(ns) enviados para ${workshop}.`);
+ currentCalc.lastDispatch={date:now,workshop,oc:currentCalc.oc||'',cut:currentCalc.number||'',lines:dispatchLines};
+ const savedCut=state.cuts.find(c=>c.id===currentCalc.id);if(savedCut)savedCut.lastDispatch=currentCalc.lastDispatch;
+ if(currentCalc.oc){for(const [productId,totalQty] of totalsByProduct)fulfillReservationsForOC(productId,currentCalc.oc,totalQty);}
+ persist();renderAll();$('bulkIssuePanel').classList.add('hidden');bulkIssueInProgress=false;const pending=lines.filter(line=>line.missingQty>0);toast(pending.length?`Envio registrado para ${workshop}. ${pending.length} item(ns) ficaram pendentes por falta de material; consulte o corte salvo.`:`Envio registrado para ${workshop}. Confira as quantidades enviadas e eventuais sobras.`);
 });
 $('moveForm').addEventListener('submit',e=>{
  e.preventDefault();const p=state.products.find(x=>x.id===$('moveProduct').value);if(!p)return toast('Selecione um produto.');
  const type=$('moveType').value,qty=Number($('moveQty').value),before=Number(p.qty)||0;if(!Number.isFinite(qty)||qty<=0)return toast('Informe uma quantidade válida.');
- if(type==='saida'&&qty>Number(p.qty)+1e-9)return toast(`Saldo insuficiente. Disponível: ${fmt(p.qty)} ${p.unit}.`);
+ if(type==='saida'&&qty>availableQty(p)+1e-9)return toast(`Saldo livre insuficiente após reservas. Disponível para saída: ${fmt(availableQty(p))} ${p.unit}; saldo físico: ${fmt(p.qty)} ${p.unit}.`);
  p.qty=Number((Number(p.qty)+(type==='entrada'?qty:-qty)).toFixed(3));
  const ref=REFERENCES.find(r=>r.id===$('moveReference').value);
  state.moves.push({id:uid(),date:new Date().toISOString(),type,productId:p.id,productName:productLabel(p),qty,unit:p.unit,workshop:$('moveWorkshop').value.trim(),cut:$('moveCut').value.trim(),referenceId:ref?.id||'',referenceName:ref?.name||'',notes:$('moveNotes').value.trim(),balanceBefore:before,balanceAfter:Number(p.qty),actor:'Local user'});
@@ -697,11 +769,12 @@ function renderDraft(target,items,mode){
    } else if(mode==='saida'){
     if(!p){errors.push(`${v.name}: produto não encontrado no estoque`);continue;}
     if(p.unit!==v.unit){errors.push(`${v.name}: unidade informada ${v.unit}, produto cadastrado em ${p.unit}`);continue;}
-    if(v.qty>Number(p.qty)){errors.push(`${v.name}: saldo insuficiente (disponível ${fmt(p.qty)} ${p.unit})`);continue;}
+    if(v.qty>availableQty(p)+1e-9){errors.push(`${v.name}: saldo disponível insuficiente após reservas (disponível ${fmt(availableQty(p))} ${p.unit}; físico ${fmt(p.qty)} ${p.unit})`);continue;}
     prepared.push({v,p,create:false});
    }
   }
   if(errors.length){alert('Nenhuma movimentação foi registrada. Corrija estes itens e tente novamente:\n'+errors.join('\n'));return;}
+  if(mode==='saida'){const totals=new Map();for(const x of prepared)totals.set(x.p.id,(totals.get(x.p.id)||0)+x.v.qty);for(const [id,total] of totals){const p=state.products.find(z=>z.id===id);if(!p||total>availableQty(p)+1e-9){errors.push(`${p?.name||'Produto'}: a soma das saídas excede o saldo disponível após reservas (${fmt(p?availableQty(p):0)} ${p?.unit||''}).`);}}if(errors.length){alert('Nenhuma movimentação foi registrada. Corrija estes itens e tente novamente:\n'+errors.join('\n'));return;}}
   const now=new Date().toISOString();
   for(const x of prepared){const v=x.v;let p=x.p;
    if(x.create){p={id:uid(),name:v.name,category:'Aviamento',color:'',unit:v.unit,qty:0,packSize:0,notes:'Criado por foto/voz'};state.products.push(p);}
@@ -735,7 +808,7 @@ $('interpretVoice').addEventListener('click',()=>{
  toast('Não consegui interpretar o comando. Tente “500 unidades de zíper preto”.');
 });
 $('exportBtn').addEventListener('click',()=>{
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.2.2',...state},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.3.3',...state},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='backup-estoque-aviamentos.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  toast('Backup exportado. Guarde o arquivo em local seguro.');
 });
@@ -744,7 +817,8 @@ function validateImportedBackup(data){
  if(!data||typeof data!=='object'||Array.isArray(data))return {ok:false,message:'O arquivo precisa conter um objeto JSON.'};
  for(const key of ['products','moves','cuts'])if(!Array.isArray(data[key]))return {ok:false,message:`O backup não contém uma lista válida de ${key}.`};
  if(data.audits!==undefined&&!Array.isArray(data.audits))return {ok:false,message:'A lista de conferências do backup está inválida.'};
- const objectLists=['products','moves','cuts','audits'];
+ for(const key of ['reservations','packages'])if(data[key]!==undefined&&!Array.isArray(data[key]))return {ok:false,message:`O backup contém uma lista inválida de ${key}.`};
+ const objectLists=['products','moves','cuts','audits','reservations','packages'];
  for(const key of objectLists){if(!Array.isArray(data[key]))continue;for(let i=0;i<data[key].length;i++){const item=data[key][i];if(!item||typeof item!=='object'||Array.isArray(item))return {ok:false,message:`Registro ${i+1} da lista ${key} está inválido.`};}}
  const codes=new Set();
  for(let i=0;i<data.products.length;i++){
@@ -755,6 +829,9 @@ function validateImportedBackup(data){
   const code=String(p.code||'').trim();if(code){if(codes.has(code))return {ok:false,message:`O código “${code}” aparece em mais de um produto no backup.`};codes.add(code);}
  }
  for(let i=0;i<data.moves.length;i++){const m=data.moves[i];if(m.qty!==undefined&&(!Number.isFinite(Number(m.qty))||Number(m.qty)<0))return {ok:false,message:`Quantidade inválida na movimentação ${i+1}.`};}
+ const productIds=new Set(data.products.map(p=>String(p.id||'')));const recordIds=new Set();for(let i=0;i<data.products.length;i++){const id=String(data.products[i].id||'');if(id&&recordIds.has(id))return {ok:false,message:`Identificador de produto duplicado: ${id}.`};if(id)recordIds.add(id);}
+ for(let i=0;i<(data.reservations||[]).length;i++){const r=data.reservations[i];if(typeof r.oc!=='string'||!r.oc.trim()||!r.productId||!productIds.has(String(r.productId))||!Number.isFinite(Number(r.qty))||Number(r.qty)<0||!['ativa','liberada','consumida'].includes(r.status))return {ok:false,message:`Reserva ${i+1} inválida ou vinculada a produto inexistente.`};if(r.status==='ativa'&&Number(r.qty)<=0)return {ok:false,message:`Reserva ativa ${i+1} precisa ter quantidade maior que zero.`};}
+ const packageCodes=new Set();for(let i=0;i<(data.packages||[]).length;i++){const p=data.packages[i];const code=String(p.code||'').trim();if(!code||!p.productId||!productIds.has(String(p.productId))||!Number.isFinite(Number(p.initial))||Number(p.initial)<0||!Number.isFinite(Number(p.remaining))||Number(p.remaining)<0||Number(p.remaining)>Number(p.initial)||typeof p.unit!=='string'||!p.unit.trim())return {ok:false,message:`Embalagem rastreada ${i+1} inválida ou vinculada a produto inexistente.`};if(packageCodes.has(code.toLowerCase()))return {ok:false,message:`Código de embalagem duplicado: ${code}.`};packageCodes.add(code.toLowerCase());}
  return {ok:true};
 }
 $('backupFile').addEventListener('change',async e=>{
@@ -767,9 +844,32 @@ $('backupFile').addEventListener('change',async e=>{
   const ok=confirm(`ATENÇÃO: restaurar este backup substituirá os dados atuais deste navegador por ${data.products.length} produto(s), ${data.moves.length} movimentação(ões) e ${data.cuts.length} corte(s). Exporte um backup atual antes de continuar. Deseja prosseguir?`);
   if(!ok)return;
   const previous=localStorage.getItem(STORAGE_KEY);
-  try{state={products:data.products,moves:data.moves,cuts:data.cuts,audits:Array.isArray(data.audits)?data.audits:[]};persist();renderProductSelects();renderAll();toast('Backup restaurado com sucesso. Confira os saldos e registros.');}
+  try{state={products:data.products,moves:data.moves,cuts:data.cuts,audits:Array.isArray(data.audits)?data.audits:[],reservations:Array.isArray(data.reservations)?data.reservations:[],packages:Array.isArray(data.packages)?data.packages:[]};persist();renderProductSelects();renderAll();toast('Backup restaurado com sucesso. Confira os saldos e registros.');}
   catch(err){if(previous===null)localStorage.removeItem(STORAGE_KEY);else localStorage.setItem(STORAGE_KEY,previous);state=loadState();renderProductSelects();renderAll();throw err;}
  }catch(err){alert('Não foi possível restaurar o backup: '+(err.message||'arquivo inválido'));}
+});
+
+// OCR de ficha de corte: apenas sugere campos reconhecidos; nunca salva automaticamente.
+function parseCutSheetText(text){
+ const raw=String(text||'');const normalized=raw.replace(/\r/g,'\n');
+ const pick=(patterns)=>{for(const re of patterns){const m=normalized.match(re);if(m)return m[1].trim();}return '';};
+ const oc=pick([/(?:\bOC\b|ordem\s+de\s+corte)\s*[:#\-]?\s*([A-Z0-9][A-Z0-9\-\/.]*)/i]);
+ const cut=pick([/(?:n[úu]mero\s+do\s+corte|corte)\s*[:#\-]?\s*([A-Z0-9][A-Z0-9\-\/.]*)/i]);
+ const pairsRaw=pick([/(\d[\d.,]*)\s*pares\b/i,/\bpares\s*[:=\-]?\s*(\d[\d.,]*)/i]);
+ const totalRaw=pick([/(\d[\d.,]*)\s*pe[çc]as\b/i,/\btotal\s*[:=\-]?\s*(\d[\d.,]*)/i]);
+ const numbers=raw.match(/(?:^|\s)(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})(?:\s|$)/m);
+ const parseNum=x=>{if(!x)return null;const cleaned=x.replace(/\.(?=\d{3}(?:\D|$))/g,'').replace(',','.');const n=Number(cleaned);return Number.isFinite(n)&&n>=0?n:null;};
+ const grade=numbers?numbers.slice(1).map(Number):null;
+ let pairs=parseNum(pairsRaw),total=parseNum(totalRaw);let note='';
+ if(pairs===null&&total!==null&&grade){const perPair=grade.reduce((a,b)=>a+b,0);if(perPair>0&&Number.isInteger(total/perPair)){pairs=total/perPair;note='Pares estimados pelo total de peças ÷ soma da grade; confirme antes de aplicar.';}}
+ return {oc,cut,pairs,total,grade,note,found:Boolean(oc||cut||pairs!==null||total!==null||grade)};
+}
+$('parseCutSheet')?.addEventListener('click',()=>{
+ const parsed=parseCutSheetText($('ocrText').value);const el=$('cutSheetDraft');el.classList.remove('hidden');
+ if(!parsed.found){el.textContent='Não encontrei OC, corte, pares, total ou grade com confiança suficiente. Corrija o texto reconhecido manualmente e tente novamente.';return;}
+ const gradeText=parsed.grade?parsed.grade.map((v,i)=>`${[38,40,42,44,46,48][i]}: ${v}`).join(' · '):'Grade não reconhecida';
+ el.innerHTML=`<strong>Dados sugeridos — revise antes de aplicar</strong><br>OC: ${esc(parsed.oc||'não identificada')}<br>Número do corte: ${esc(parsed.cut||'não identificado')}<br>Pares: ${parsed.pairs===null?'não identificados':fmt(parsed.pairs)}<br>Total de peças: ${parsed.total===null?'não identificado':fmt(parsed.total)}<br>Grade por par: ${esc(gradeText)}<br><small>${esc(parsed.note||'A leitura pode conter erros de OCR. Nada será salvo automaticamente.')}</small><div class="actions"><button class="primary" id="applyCutSheet">Aplicar campos reconhecidos</button></div>`;
+ $('applyCutSheet').addEventListener('click',()=>{if(parsed.oc)$('cutOC').value=parsed.oc;if(parsed.cut)$('cutNumber').value=parsed.cut;if(parsed.pairs!==null)$('cutPairs').value=parsed.pairs;if(parsed.grade)parsed.grade.forEach((v,i)=>{const input=$('size'+[38,40,42,44,46,48][i]);if(input)input.value=v;});if(parsed.total!==null&&parsed.pairs===null&&!parsed.grade)$('cutNotes').value=($('cutNotes').value+' Total OCR detectado: '+parsed.total+' peças.').trim();goto('corte');toast('Campos preenchidos como sugestão. Revise e calcule manualmente.');});
 });
 
 // Módulos adicionais: inventário, relatórios, scanner e conexão de API.
@@ -787,8 +887,95 @@ $('scanStop')?.addEventListener('click',stopScanner);window.addEventListener('pa
 $('apiCheck')?.addEventListener('click',async()=>{let base=$('apiBase').value.trim().replace(/\/$/,'');if(!base)return toast('Informe a URL da API.');$('apiStatus').value='Testando…';try{const r=await fetch(base+'/api/health',{headers:{'Accept':'application/json'}});if(!r.ok)throw new Error('HTTP '+r.status);$('apiStatus').value='Conectado';toast('Servidor respondeu. Isso não confirma login nem sincronização.');}catch(e){$('apiStatus').value='Falha de conexão';toast('Não foi possível validar a API. Confira URL, CORS e servidor.');}});
 $('apiExport')?.addEventListener('click',()=> $('exportBtn').click());
 
+
+// === FASE 1: reservas, rastreio físico, previsão e assistente local ===
+function ensureCollections(){state.reservations=Array.isArray(state.reservations)?state.reservations:[];state.packages=Array.isArray(state.packages)?state.packages:[];}
+function activeReservations(productId){ensureCollections();return state.reservations.filter(r=>r.productId===productId&&r.status==='ativa').reduce((n,r)=>n+Number(r.qty||0),0);}
+function availableQty(p){return Math.max(0,(Number(p.qty)||0)-activeReservations(p.id));}
+function availableForOC(p,oc){const normalized=String(oc||'').trim().toLowerCase();const reservedForOthers=(state.reservations||[]).filter(r=>r.productId===p.id&&r.status==='ativa'&&String(r.oc||'').trim().toLowerCase()!==normalized).reduce((n,r)=>n+Number(r.qty||0),0);return Math.max(0,(Number(p.qty)||0)-reservedForOthers);}
+function fulfillReservationsForOC(productId,oc,qty){const normalized=String(oc||'').trim().toLowerCase();if(!normalized||qty<=0)return;for(const r of (state.reservations||[]).filter(r=>r.productId===productId&&r.status==='ativa'&&String(r.oc||'').trim().toLowerCase()===normalized)){if(qty<=1e-9)break;const used=Math.min(Number(r.qty)||0,qty);r.originalQty=r.originalQty??(Number(r.qty)||0);r.fulfilledQty=(Number(r.fulfilledQty)||0)+used;r.qty=Number(((Number(r.qty)||0)-used).toFixed(3));qty=Number((qty-used).toFixed(3));if(r.qty<=1e-9){r.qty=0;r.status='consumida';r.fulfilledAt=new Date().toISOString();}}}
+function populateNewFeatureSelects(){
+ const opts='<option value="">Selecione produto</option>'+state.products.map(p=>`<option value="${esc(p.id)}">${esc(productLabel(p))} — saldo ${fmt(p.qty)}</option>`).join('');
+ ['resProduct','pkgProduct'].forEach(id=>{const el=$(id);if(el){const old=el.value;el.innerHTML=opts;if(state.products.some(p=>p.id===old))el.value=old;}});
+ const pkg=$('pkgUpdateId');if(pkg){const old=pkg.value;pkg.innerHTML='<option value="">Selecione embalagem</option>'+state.packages.map(p=>`<option value="${esc(p.id)}">${esc(p.code)} — ${esc(p.productName)} (${fmt(p.remaining)} ${esc(p.unit)})</option>`).join('');if(state.packages.some(p=>p.id===old))pkg.value=old;}
+}
+function renderReservations(){
+ ensureCollections();populateNewFeatureSelects();
+ const rows=state.reservations.slice().reverse().map(r=>[esc(r.oc),esc(r.productName),`${fmt(r.qty)} ${esc(r.unit)}${Number(r.fulfilledQty)>0?` (consumido: ${fmt(r.fulfilledQty)})`:''}`,r.status==='ativa'?'<span class="pill">Ativa</span>':(r.status==='consumida'?'Consumida':'Liberada'),dateFmt(r.date),r.status==='ativa'?`<button class="secondary small" data-release-res="${esc(r.id)}">Liberar</button>`:'—']);
+ $('reservationTable').innerHTML=table(['OC','Produto','Reservado','Status','Data','Ação'],rows,'Nenhuma reserva registrada.');
+ $('reservationAvailability').innerHTML=table(['Produto','Saldo físico','Reservado','Disponível'],state.products.map(p=>[esc(productLabel(p)),`${fmt(p.qty)} ${esc(p.unit)}`,`${fmt(activeReservations(p.id))} ${esc(p.unit)}`,`${fmt(availableQty(p))} ${esc(p.unit)}`]),'Cadastre produtos para consultar disponibilidade.');
+ $('reservationTable').querySelectorAll('[data-release-res]').forEach(b=>b.addEventListener('click',()=>{const r=state.reservations.find(x=>x.id===b.dataset.releaseRes);if(!r||r.status!=='ativa')return;if(!confirm(`Liberar a reserva ${r.oc} de ${r.productName}?`))return;r.status='liberada';r.releasedAt=new Date().toISOString();persist();renderAll();toast('Reserva liberada; saldo físico não foi alterado.');}));
+}
+$('reservationForm')?.addEventListener('submit',e=>{
+ e.preventDefault();ensureCollections();
+ const oc=$('resOC').value.trim(),p=state.products.find(x=>x.id===$('resProduct').value),qty=Number($('resQty').value);
+ if(!oc||!p||!Number.isFinite(qty)||qty<=0)return toast('Informe OC, produto e quantidade válidos.');
+ if(state.reservations.some(r=>r.oc.toLowerCase()===oc.toLowerCase()&&r.productId===p.id&&r.status==='ativa'))return toast('Já existe uma reserva ativa desse produto para essa OC. Edite/libere a reserva existente antes de criar outra.');
+ if(qty>availableQty(p)+1e-9)return toast(`Quantidade insuficiente. Disponível: ${fmt(availableQty(p))} ${p.unit}.`);
+ state.reservations.push({id:uid(),oc,productId:p.id,productName:productLabel(p),qty,unit:p.unit,notes:$('resNotes').value.trim(),status:'ativa',date:new Date().toISOString()});
+ persist();$('reservationForm').reset();renderAll();toast('Reserva criada. O saldo físico não foi baixado.');
+});
+function renderPackages(){
+ ensureCollections();populateNewFeatureSelects();
+ const rows=state.packages.slice().reverse().map(p=>[esc(p.code),esc(p.productName),esc(p.type),`${fmt(p.initial)} ${esc(p.unit)}`,`${fmt(p.remaining)} ${esc(p.unit)}`,esc(p.location||'—'),esc(p.status||'Aberta'),dateFmt(p.updatedAt||p.createdAt)]);
+ $('packageTable').innerHTML=table(['Código','Produto','Tipo','Inicial','Restante','Local','Estado','Atualizado'],rows,'Nenhuma embalagem física cadastrada.');
+}
+$('packageForm')?.addEventListener('submit',e=>{
+ e.preventDefault();ensureCollections();
+ const code=$('pkgCode').value.trim(),p=state.products.find(x=>x.id===$('pkgProduct').value),qty=Number($('pkgQty').value),unit=$('pkgUnit').value;
+ if(!code||!p||!Number.isFinite(qty)||qty<0)return toast('Confira código, produto e quantidade.');
+ if(state.packages.some(x=>x.code.toLowerCase()===code.toLowerCase()))return toast('Esse código de embalagem já existe.');
+ if(unit!==p.unit && !confirm(`A embalagem será controlada em ${unit}, enquanto o produto usa ${p.unit}. Não haverá conversão automática. Continuar?`))return;
+ const now=new Date().toISOString();state.packages.push({id:uid(),code,productId:p.id,productName:productLabel(p),type:$('pkgType').value,initial:qty,remaining:qty,unit,location:$('pkgLocation').value.trim(),status:qty===0?'Vazia':'Aberta',createdAt:now,updatedAt:now,history:[{date:now,qty,reason:'Cadastro inicial'}]});
+ persist();$('packageForm').reset();renderAll();toast('Embalagem rastreável cadastrada sem alterar o saldo geral.');
+});
+$('packageUpdateForm')?.addEventListener('submit',e=>{
+ e.preventDefault();ensureCollections();const p=state.packages.find(x=>x.id===$('pkgUpdateId').value),qty=Number($('pkgRemaining').value),reason=$('pkgUpdateReason').value.trim();
+ if(!p||!Number.isFinite(qty)||qty<0||!reason)return toast('Confira embalagem, quantidade e motivo.');
+ const before=p.remaining,now=new Date().toISOString();p.remaining=qty;p.status=qty===0?'Vazia':'Aberta';p.updatedAt=now;p.history=Array.isArray(p.history)?p.history:[];p.history.push({date:now,before,qty,reason});persist();$('packageUpdateForm').reset();renderAll();toast('Embalagem atualizada e histórico preservado. O saldo geral não foi alterado.');
+});
+function calculateForecastMetrics({used,windowDays,available,leadDays,safetyDays}){
+ const safeWindow=Math.max(1,Number(windowDays)||30),safeUsed=Math.max(0,Number(used)||0),safeAvailable=Math.max(0,Number(available)||0);
+ const daily=safeUsed/safeWindow,daysLeft=daily>0?safeAvailable/daily:null;
+ const lead=Math.max(0,Math.min(365,Number(leadDays)||0)),safety=Math.max(0,Math.min(365,Number(safetyDays)||0));
+ const targetDemand=daily*(lead+safety),suggested=Math.max(0,targetDemand-safeAvailable);
+ let status='Saldo projetado suficiente';
+ if(daily===0)status='Sem saída registrada no período';
+ else if(daysLeft<=lead)status='Reposição urgente';
+ else if(daysLeft<=lead+safety)status='Planejar reposição';
+ return {daily,daysLeft,suggested,status,targetDemand};
+}
+function renderForecast(){
+ const el=$('forecastTable');if(!el)return;
+ const days=Math.max(1,Number($('forecastWindow')?.value)||30),since=Date.now()-days*86400000;
+ const leadDays=Math.max(0,Math.min(365,Number($('forecastLeadDays')?.value)||0));
+ const safetyDays=Math.max(0,Math.min(365,Number($('forecastSafetyDays')?.value)||0));
+ const rows=state.products.map(p=>{
+  const outs=state.moves.filter(m=>{const t=new Date(m.date).getTime();return m.type==='saida'&&m.productId===p.id&&Number.isFinite(t)&&t<=Date.now()&&t>=since&&String(m.unit||p.unit)===String(p.unit)});
+  const used=outs.reduce((n,m)=>n+Math.max(0,Number(m.qty)||0),0),available=availableQty(p);
+  const metrics=calculateForecastMetrics({used,windowDays:days,available,leadDays,safetyDays});
+  return {sort:metrics.daysLeft===null?Infinity:metrics.daysLeft,row:[esc(productLabel(p)),`${fmt(p.qty)} ${esc(p.unit)}`,`${fmt(activeReservations(p.id))} ${esc(p.unit)}`,`${fmt(available)} ${esc(p.unit)}`,`${fmt(used)} ${esc(p.unit)} / ${days} dias`,`${fmt(metrics.daily)} ${esc(p.unit)}/dia`,metrics.daysLeft===null?'—':`${fmt(metrics.daysLeft)} dias`,metrics.suggested>0?`${fmt(metrics.suggested)} ${esc(p.unit)}`:'0',esc(metrics.status)]};
+ }).sort((a,b)=>a.sort-b.sort).map(x=>x.row);
+ el.innerHTML=table(['Produto','Físico','Reservado','Livre','Saídas no período','Média diária','Dias estimados','Sugestão de reposição','Sinal'],rows,'Cadastre produtos para calcular previsão.');
+}
+$('forecastWindow')?.addEventListener('change',renderForecast);$('forecastLeadDays')?.addEventListener('input',renderForecast);$('forecastSafetyDays')?.addEventListener('input',renderForecast);$('refreshForecast')?.addEventListener('click',()=>{renderForecast();toast('Previsão atualizada com o histórico disponível.');});
+function answerStockQuestion(question){
+ const q=norm(question);
+ if(!q)return 'Digite uma pergunta.';
+ if(q.includes('reserva')){const rs=(state.reservations||[]).filter(r=>r.status==='ativa');return rs.length?`Reservas ativas (${rs.length}): `+rs.map(r=>`${r.oc}: ${r.productName}, ${fmt(r.qty)} ${r.unit}`).join('; '):'Não há reservas ativas.';}
+ if(q.includes('movimenta')||q.includes('saidas')||q.includes('saídas')||q.includes('ultimas')||q.includes('últimas')){const ms=state.moves.slice(-8).reverse();return ms.length?`Últimas ${ms.length} movimentações: `+ms.map(m=>`${m.type} — ${m.productName}: ${fmt(m.qty)} ${m.unit} (${dateFmt(m.date)})`).join('; '):'Não há movimentações registradas.';}
+ if(q.includes('baixo')||q.includes('mínimo')||q.includes('minimo')||q.includes('zerado')||q.includes('acab')){const ps=state.products.filter(p=>Number(p.qty)<=0||(p.minQty!==undefined&&p.minQty!==null&&p.minQty!==''&&Number(p.qty)<=Number(p.minQty)));return ps.length?'Produtos em alerta: '+ps.map(p=>`${productLabel(p)}: ${fmt(p.qty)} ${p.unit}`).join('; '):'Não há produtos abaixo do mínimo cadastrado ou com saldo zerado.';}
+ const matches=state.products.filter(p=>q.includes(norm(p.name))||(p.color&&q.includes(norm(p.color))&&q.includes(norm(p.name))));
+ if(matches.length)return matches.map(p=>`${productLabel(p)}: saldo físico ${fmt(p.qty)} ${p.unit}; reserva ativa ${fmt(activeReservations(p.id))} ${p.unit}; disponível ${fmt(availableQty(p))} ${p.unit}.`).join('\n');
+ if(q.includes('total')||q.includes('quantos produtos'))return `Há ${state.products.length} produtos cadastrados. Como existem unidades diferentes, os saldos não são somados em um único total.`;
+ return 'Ainda não reconheço essa pergunta. Tente consultar um produto pelo nome, reservas ativas, últimas movimentações ou itens abaixo do mínimo. Esta é uma consulta local por regras, não uma IA generativa.';
+}
+$('askAssistant')?.addEventListener('click',()=>{$('assistantAnswer').textContent=answerStockQuestion($('assistantQuestion').value);});
+$('assistantClear')?.addEventListener('click',()=>{$('assistantQuestion').value='';$('assistantAnswer').textContent='Digite uma pergunta para consultar os dados locais.';});
+document.querySelectorAll('.assistant-sample').forEach(b=>b.addEventListener('click',()=>{$('assistantQuestion').value=b.dataset.q;$('askAssistant').click();}));
+
 async function init(){
- buildSizeGrid();renderProductSelects();renderAll();refreshInvProducts();renderAuditHistory();renderReports();
+ buildSizeGrid();renderProductSelects();renderAll();refreshInvProducts();renderAuditHistory();renderReports();renderReservations();renderPackages();renderForecast();
  const status=$('apiStatus');
  try{
   if(status)status.value='Conectando ao PostgreSQL…';
@@ -800,19 +987,19 @@ async function init(){
    const saved=remote.state;
    const localBefore=loadState();
    const localSnapshot=JSON.stringify(localBefore);
-   const remoteSnapshot=JSON.stringify({products:Array.isArray(saved.products)?saved.products:[],moves:Array.isArray(saved.moves)?saved.moves:[],cuts:Array.isArray(saved.cuts)?saved.cuts:[],audits:Array.isArray(saved.audits)?saved.audits:[]});
-   if((localBefore.products.length||localBefore.moves.length||localBefore.cuts.length||localBefore.audits.length)&&localSnapshot!==remoteSnapshot){
+   const remoteSnapshot=JSON.stringify({products:Array.isArray(saved.products)?saved.products:[],moves:Array.isArray(saved.moves)?saved.moves:[],cuts:Array.isArray(saved.cuts)?saved.cuts:[],audits:Array.isArray(saved.audits)?saved.audits:[],reservations:Array.isArray(saved.reservations)?saved.reservations:[],packages:Array.isArray(saved.packages)?saved.packages:[]});
+   if((localBefore.products.length||localBefore.moves.length||localBefore.cuts.length||localBefore.audits.length||(localBefore.reservations||[]).length||(localBefore.packages||[]).length)&&localSnapshot!==remoteSnapshot){
     const backupKey=STORAGE_KEY+'_backup_'+new Date().toISOString().replace(/[:.]/g,'-');
     try{localStorage.setItem(backupKey,localSnapshot);console.warn('Dados locais diferentes do servidor foram preservados em '+backupKey);if(status)status.value='Conectado — backup local preservado';}catch(e){throw new Error('Dados locais diferentes do servidor; não foi possível criar backup local. Sincronização interrompida para proteger os dados.');}
    }
-   state={products:Array.isArray(saved.products)?saved.products:[],moves:Array.isArray(saved.moves)?saved.moves:[],cuts:Array.isArray(saved.cuts)?saved.cuts:[],audits:Array.isArray(saved.audits)?saved.audits:[]};
+   state={products:Array.isArray(saved.products)?saved.products:[],moves:Array.isArray(saved.moves)?saved.moves:[],cuts:Array.isArray(saved.cuts)?saved.cuts:[],audits:Array.isArray(saved.audits)?saved.audits:[],reservations:Array.isArray(saved.reservations)?saved.reservations:[],packages:Array.isArray(saved.packages)?saved.packages:[]};
    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){console.warn('Cache local indisponível:',e);}
    remoteReady=true;
    if(status)status.value='Conectado ao PostgreSQL';
   }else{
    // Banco vazio: preservar e migrar os dados que já existirem neste navegador.
    const local=loadState();
-   state={products:local.products,moves:local.moves,cuts:local.cuts,audits:local.audits};
+   state={products:local.products,moves:local.moves,cuts:local.cuts,audits:local.audits,reservations:local.reservations||[],packages:local.packages||[]};
    const snapshot=JSON.stringify(state);
    const saveResponse=await fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json','If-Match':String(remoteRevision)},body:snapshot});
    if(!saveResponse.ok)throw new Error('Não foi possível migrar os dados locais (HTTP '+saveResponse.status+').');
@@ -826,7 +1013,7 @@ async function init(){
   if(status)status.value='Offline — usando dados locais';
   console.warn('PostgreSQL indisponível; mantendo os dados locais:',error);
  }
- renderProductSelects();renderAll();refreshInvProducts();renderAuditHistory();renderReports();
+ renderProductSelects();renderAll();refreshInvProducts();renderAuditHistory();renderReports();renderReservations();renderPackages();renderForecast();
 }
 // Acesso sem senha temporariamente, conforme solicitado.
 const THEME_KEY='estoque_aviamentos_theme_v1';
