@@ -73,53 +73,14 @@ select { color:#172033 !important; background:#f8fbff !important; }
 .aviamento-detail{margin:0;padding:12px 15px;color:#475569;font-size:13px;line-height:1.5}
 @media(max-width:520px){.aviamento-result-top{flex-direction:column;gap:5px}.aviamento-amount{text-align:left}.label-size-head,.label-size-row{grid-template-columns:.8fr 1.2fr .7fr;font-size:12px;padding-left:2px;padding-right:2px}.label-total{align-items:flex-start;flex-direction:column;gap:4px}}
 
-
-/* TEMA CLARO/ESCURO: alternância visual sem alterar dados nem cálculos */
-body[data-theme="light"]{
- --bg:#f3f6fb;--card:#ffffff;--text:#172033;--muted:#64748b;--line:#dce4ef;
- --navy:#172554;--blue:#2563eb;--blue2:#dbeafe;--green:#15803d;--red:#b91c1c;--amber:#b45309;
- background:radial-gradient(ellipse at 8% 0%,#dbeafe99,transparent 36%),radial-gradient(ellipse at 95% 15%,#ede9fe99,transparent 30%),var(--bg);
- color:var(--text)
-}
-body[data-theme="light"] .topbar{background:linear-gradient(115deg,#172554,#1e40af 60%,#4338ca)}
-body[data-theme="light"] label{color:#334155}
-body[data-theme="light"] .pagehead p,body[data-theme="light"] .sectiontitle{color:#334155}
-body[data-theme="light"] .sizebox{background:#fff;border-color:#dce4ef}
-body[data-theme="light"] .sizebox input{background:#fff;color:#172033}
-body[data-theme="light"] .fileinput{background:#f8fafc;color:#263751;border-color:#cbd5e1}
-body[data-theme="light"] .fileinput label{color:#334155}
-body[data-theme="light"] .modal{background:#fff;color:#172033;border-color:#dce4ef}
-body[data-theme="light"] .modal label{color:#334155}
-body[data-theme="light"] .modal input,body[data-theme="light"] .modal select,body[data-theme="light"] .modal textarea{background:#fff;color:#172033;border-color:#cbd5e1}
-body[data-theme="light"] td{color:#172033}
-body[data-theme="light"] .alert-panel{background:linear-gradient(145deg,#fff,#f8fbff);border-color:#dce4ef}
-body[data-theme="light"] .alert-count{background:#ede9fe;color:#5b21b6;border-color:#c4b5fd}
-
-body[data-theme="light"] .sidebar{background:#ffffffed;border-color:#dce4ef}
-body[data-theme="light"] .navbtn{color:#475569}
-body[data-theme="light"] .navbtn:hover{background:#eff6ff;color:#1d4ed8}
-body[data-theme="light"] .navbtn.active{background:linear-gradient(100deg,#dbeafe,#ede9fe);color:#1d4ed8;border-color:#93b4fa;box-shadow:inset 3px 0 #2563eb,0 4px 12px #1d4ed80d}
-body[data-theme="light"] .card{background:linear-gradient(145deg,#fff,#f8fbff);border-color:#dce4ef;box-shadow:0 8px 24px #0f172a0a}
-body[data-theme="light"] input,body[data-theme="light"] select,body[data-theme="light"] textarea{background:#fff;color:#172033;border-color:#cbd5e1}
-body[data-theme="light"] table{background:#fff}
-body[data-theme="light"] th{background:#f1f5f9;color:#334155}
-body[data-theme="light"] .resultbox,body[data-theme="light"] .chart-track{background:#edf2f8;border-color:#dce4ef}
-body[data-theme="light"] .secondary{background:#eaf0f8;color:#172554;border-color:#d5dfed}
-body[data-theme="light"] .ghost{color:#475569;border-color:#cbd5e1}
-body[data-theme="light"] .productrow{border-color:#e2e8f0}
-body[data-theme="light"] .chart-row{border-color:#e2e8f0}
-.chart-row{border-radius:12px;padding:7px;cursor:pointer;transition:background .2s ease,transform .2s ease}
-.chart-row:hover{background:#4f8cff12;transform:translateX(2px)}
-.chart-row:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-.chart-hint{font-size:12px;color:var(--muted);margin-top:8px}
-
 </style>
 </head>
 <body>
+<div id="authOverlay" class="modalback" style="z-index:100;display:none"><div class="modal" style="max-width:420px"><h2>Entrar no Estoque de Aviamentos</h2><p class="muted">Acesso administrativo protegido.</p><form id="authForm"><div class="field"><label for="authPassword">Senha de administrador</label><input id="authPassword" type="password" autocomplete="current-password" required></div><div id="authError" class="notice warning hidden" style="margin-top:10px"></div><div class="actions"><button class="primary" type="submit">Entrar</button></div></form></div></div>
 <div class="app">
 <header class="topbar">
  <div class="brand"><div class="logo">📦</div><div><h1>ESTOQUE DE AVIAMENTOS</h1><p>Controle de materiais, cortes e oficinas</p></div></div>
- <div class="top-actions"><button id="themeToggle" type="button" title="Alternar tema claro/escuro">☀️ Tema claro</button><button id="voiceTop" title="Cadastrar por voz">🎙️ Voz</button><button id="photoTop">📷 Ler lista</button><button id="exportBtn">⬇ Exportar backup</button><button id="importBtn" type="button">↥ Restaurar backup</button><input id="backupFile" type="file" accept="application/json,.json" hidden></div>
+ <div class="top-actions"><button id="voiceTop" title="Cadastrar por voz">🎙️ Voz</button><button id="photoTop">📷 Ler lista</button><button id="exportBtn">⬇ Exportar backup</button><button id="importBtn" type="button">↥ Restaurar backup</button><input id="backupFile" type="file" accept="application/json,.json" hidden></div>
 </header>
 <div class="layout">
  <nav class="sidebar" aria-label="Navegação">
@@ -144,9 +105,9 @@ body[data-theme="light"] .chart-row{border-color:#e2e8f0}
     <div class="card span3"><div class="statlabel">Cortes calculados</div><div class="statvalue" id="statCuts">0</div><div class="statnote">Cálculos salvos</div></div>
     <div class="card span3"><div class="statlabel">Saídas registradas</div><div class="statvalue" id="statOut">0</div><div class="statnote">Movimentações de saída</div></div>
     <div class="card span12 alert-panel"><div class="alert-head"><div><h3 class="sectiontitle">⚠ Central de alertas</h3><p class="muted alert-sub">Avisos calculados com base no saldo atual e no mínimo definido por produto.</p></div><span id="alertCount" class="alert-count">0 alertas</span></div><div id="stockAlerts" class="alert-list"></div></div>
-    <div class="card span12"><h3 class="sectiontitle">📊 Aviamentos por categoria</h3><p class="muted" style="margin-top:-8px">Distribuição do saldo atual por categoria. O gráfico atualiza ao cadastrar produtos ou registrar movimentações.</p><div id="stockCategoryChart" class="category-chart" aria-label="Gráfico interativo de estoque por categoria"></div></div>
+    <div class="card span12"><h3 class="sectiontitle">📊 Aviamentos por categoria</h3><p class="muted" style="margin-top:-8px">Distribuição do saldo atual por categoria. O gráfico atualiza ao cadastrar produtos ou registrar movimentações.</p><div id="stockCategoryChart" class="category-chart" role="img" aria-label="Gráfico de estoque por categoria"></div></div>
     <div class="card span7"><h3 class="sectiontitle">Estoque recente</h3><div id="homeStock"></div></div>
-    <div class="card span5"><h3 class="sectiontitle">Atalhos</h3><div class="actions" style="margin-top:0"><button class="secondary" data-goto="produto">Cadastrar produto</button><button class="secondary" data-goto="corte">Calcular corte</button><button class="secondary" data-goto="foto">Foto ou voz</button></div><div class="divider"></div><div class="notice">O sistema tenta sincronizar com o servidor/PostgreSQL quando disponível e mantém um cache local neste dispositivo. Use “Exportar backup” para guardar uma cópia de segurança.</div></div>
+    <div class="card span5"><h3 class="sectiontitle">Atalhos</h3><div class="actions" style="margin-top:0"><button class="secondary" data-goto="produto">Cadastrar produto</button><button class="secondary" data-goto="corte">Calcular corte</button><button class="secondary" data-goto="foto">Foto ou voz</button></div><div class="divider"></div><div class="notice">Os dados ficam salvos neste navegador/dispositivo. Use “Exportar dados” para guardar uma cópia.</div></div>
     <div class="card span12"><h3 class="sectiontitle">Últimas movimentações</h3><div id="homeMoves"></div></div>
    </div>
   </section>
@@ -162,9 +123,8 @@ body[data-theme="light"] .chart-row{border-color:#e2e8f0}
      <div class="field"><label>Categoria</label><select id="productCategory"><option>Costura</option><option>Acabamento</option><option>Aviamento</option><option>Botão</option><option>Etiqueta</option><option>Fechamento</option><option>Material de costura</option><option>Outro</option></select></div>
      <div class="field"><label>Cor / variação</label><input id="productColor" placeholder="Ex.: Preto"></div>
      <div class="field"><label>Unidade de controle *</label><select id="productUnit" required><option value="unidade">Unidade</option><option value="pacote">Pacote</option><option value="caixa">Caixa</option><option value="rolo">Rolo</option><option value="metro">Metro</option><option value="grama">Grama</option><option value="kg">Quilograma (kg)</option></select></div>
-     <div class="field"><label id="productQtyLabel">Quantidade inicial *</label><input id="productQty" type="number" min="0" step="0.001" value="0" required></div>
+     <div class="field"><label>Quantidade inicial *</label><input id="productQty" type="number" min="0" step="0.001" value="0" required></div>
      <div class="field"><label>Itens por pacote/caixa (opcional)</label><input id="productPackSize" type="number" min="0" step="0.001" placeholder="Ex.: 100"></div>
-     <div class="field"><label id="productLooseLabel">Quantidade avulsa (opcional)</label><input id="productLooseQty" type="number" min="0" step="1" value="0" placeholder="Ex.: 3"><small class="muted" id="productLooseHelp">Para elástico: rolos avulsos; para refletivo: unidades avulsas.</small></div>
      <div class="field"><label>Código de identificação (opcional)</label><input id="productCode" placeholder="Código de barras ou QR único"></div>
      <div class="field"><label>Estoque mínimo para alerta (opcional)</label><input id="productMinQty" type="number" min="0" step="0.001" placeholder="Ex.: 10"><small class="muted">O sistema avisa quando o saldo ficar neste valor ou abaixo.</small></div>
      <div class="field full"><label>Observação</label><input id="productNotes" placeholder="Informação adicional"></div>
@@ -194,7 +154,7 @@ body[data-theme="light"] .chart-row{border-color:#e2e8f0}
     <div class="card span6"><h3 class="sectiontitle">Nova movimentação</h3><form id="moveForm"><div class="fieldgrid">
      <div class="field"><label>Tipo *</label><select id="moveType"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
      <div class="field"><label>Produto *</label><select id="moveProduct" required></select></div>
-     <div class="field"><label>Quantidade *</label><input id="moveQty" type="number" min="0.00000001" step="0.00000001" required placeholder="Quantidade na unidade do produto"></div>
+     <div class="field"><label>Quantidade *</label><input id="moveQty" type="number" min="0.001" step="0.001" required placeholder="Quantidade na unidade do produto"></div>
      <div class="field"><label>Destino / oficina (opcional)</label><input id="moveWorkshop" placeholder="Nome da oficina"></div>
      <div class="field"><label>Número do corte (opcional)</label><input id="moveCut" placeholder="Número do corte"></div>
      <div class="field"><label>Referência (opcional)</label><select id="moveReference"><option value="">Sem referência</option></select></div>
@@ -270,6 +230,7 @@ const defaultProducts = [
 ];
 let state = loadState();
 let remoteReady = false;
+let remoteRevision = 0;
 let remoteSaveChain = Promise.resolve();
 let currentCalc = null;
 let currentPhoto = null;
@@ -283,9 +244,10 @@ function persist(){
  try{localStorage.setItem(STORAGE_KEY,snapshot);}catch(e){console.warn('Não foi possível salvar o cache local:',e);}
  if(!remoteReady)return;
  remoteSaveChain=remoteSaveChain.then(async()=>{
-  const response=await fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json'},body:snapshot});
+  const response=await fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json','If-Match':String(remoteRevision)},body:snapshot});
+  if(response.status===409){remoteReady=false;throw new Error('Conflito: os dados do servidor mudaram. Recarregue e compare os dados antes de continuar.');}
   if(!response.ok)throw new Error('HTTP '+response.status);
-  const result=await response.json();
+  const result=await response.json();if(Number.isFinite(Number(result.revision)))remoteRevision=Number(result.revision);
   const status=$('apiStatus');if(status)status.value='Sincronizado com PostgreSQL';
   return result;
  }).catch(error=>{
@@ -299,17 +261,19 @@ function fmt(n){return Number(n||0).toLocaleString('pt-BR',{maximumFractionDigit
 function money(n){return fmt(n);}
 function toast(msg){$('toast').textContent=msg;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),3200);}
 function productLabel(p){return p.name+(p.color?' — '+p.color:'')+' ('+p.unit+')';}
-function stockTotal(){return state.products.reduce((a,p)=>a+Number(p.qty||0),0);}
+function stockTotal(){return state.products.length;}
+function stockUnitSummary(){const groups=new Map();state.products.forEach(p=>{const u=String(p.unit||'unidade');groups.set(u,(groups.get(u)||0)+(Number(p.qty)||0));});return [...groups].map(([u,q])=>fmt(q)+' '+u).join(' · ');}
 function productMatch(name,color=''){
  const n=norm(name), c=norm(color);
- return state.products.find(p=>norm(p.name)===n && (!c || norm(p.color||'')===c)) ||
- state.products.find(p=>norm(p.name)===n);
+ const sameName=state.products.filter(p=>norm(p.name)===n);
+ if(c) return sameName.find(p=>norm(p.color||'')===c);
+ return sameName.find(p=>!norm(p.color||'')) || (sameName.length===1?sameName[0]:undefined);
 }
 function norm(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
 function renderAll(){renderStats();renderStock();renderProductSelects();renderMoves();renderCuts();renderHome();renderWorkshops();refreshInvProducts();renderAuditHistory();renderReports();}
 function renderStats(){
  $('statProducts').textContent=state.products.length;
- $('statStock').textContent=fmt(stockTotal());
+ $('statStock').textContent=String(stockTotal());const stockNote=$('statStock')?.parentElement?.querySelector('.statnote');if(stockNote)stockNote.textContent=state.products.length?'Produtos cadastrados; saldos separados por unidade: '+stockUnitSummary():'Nenhum produto cadastrado';
  $('statCuts').textContent=state.cuts.length;
  $('statOut').textContent=state.moves.filter(m=>m.type==='saida').length;
 }
@@ -351,75 +315,19 @@ function renderCategoryChart(){
  const max=Math.max(...rows.map(([,v])=>v.qty),0);
  el.innerHTML=rows.map(([,v])=>{
   const width=max>0?Math.max(v.qty>0?3:0,(v.qty/max)*100):0;
-  return `<button type="button" class="chart-row" data-chart-category="${esc(v.category)}" data-chart-unit="${esc(v.unit)}" aria-label="Ver estoque da categoria ${esc(v.category)}, unidade ${esc(v.unit)}" style="display:grid;width:100%;text-align:left;color:inherit;background:transparent;border:1px solid transparent;padding:7px"><div class="chart-label">${esc(v.category)}<div class="muted" style="font-size:11px;font-weight:400">${v.count} produto(s) · ${esc(v.unit)}</div></div><div class="chart-track"><div class="chart-bar" style="width:${width.toFixed(2)}%"></div></div><div class="chart-value">${fmt(v.qty)} ${esc(v.unit)}</div></button>`;
- }).join('')+`<div class="chart-legend">${products.length} produto(s) cadastrado(s). Categorias com unidades diferentes aparecem separadas para evitar somas incorretas.</div><div class="chart-hint">Toque em uma barra para abrir o estoque já filtrado.</div>`;
- el.querySelectorAll('[data-chart-category]').forEach(btn=>btn.addEventListener('click',()=>{
-  const category=btn.dataset.chartCategory||'';
-  const unit=btn.dataset.chartUnit||'';
-  const search=$('stockSearch'), filter=$('stockUnit');
-  if(search)search.value=category;
-  if(filter)filter.value=unit;
-  renderStock();goto('estoque');
- }));
+  return `<div class="chart-row"><div class="chart-label">${esc(v.category)}<div class="muted" style="font-size:11px;font-weight:400">${v.count} produto(s) · ${esc(v.unit)}</div></div><div class="chart-track"><div class="chart-bar" style="width:${width.toFixed(2)}%"></div></div><div class="chart-value">${fmt(v.qty)} ${esc(v.unit)}</div></div>`;
+ }).join('')+`<div class="chart-legend">${products.length} produto(s) cadastrado(s). Categorias com unidades diferentes aparecem separadas para evitar somas incorretas.</div>`;
 }
 function dateFmt(v){try{return new Date(v).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});}catch(e){return '—';}}
 function table(headers, rows, empty='Nenhum registro encontrado.'){
  if(!rows.length)return `<div class="empty">${empty}</div>`;
  return `<div class="tablewrap"><table><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c==null?'—':c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
-function packagingUnitInfo(p){
- const name=norm(p?.name||''), unit=norm(p?.unit||'');
- if(name.includes('elast')&&unit==='pacote')return {perPack:15,unit:'rolos',metersPerUnit:25,packLabel:'pacote(s)'};
- if(name.includes('refletivo')&&unit==='caixa')return {perPack:20,unit:'unidades',metersPerUnit:50,packLabel:'caixa(s)'};
- return null;
-}
-function stockPhysicalBalance(p){
- const info=packagingUnitInfo(p);
- if(!info)return `${fmt(Number(p.qty)||0)} ${p.unit||'unidade'}`;
- const totalUnits=Math.max(0,Math.round((Number(p.qty)||0)*info.perPack));
- const wholePacks=Math.floor(totalUnits/info.perPack), loose=totalUnits%info.perPack;
- return `${wholePacks} ${info.packLabel}${loose?` + ${loose} ${info.unit} avulso(s)`:''}`;
-}
-function stockPhysicalEquivalent(p){
- const name=norm(p.name||''), unit=norm(p.unit||'unidade'), qty=Number(p.qty)||0;
- const info=packagingUnitInfo(p);
- if(info){
-  const totalUnits=Math.max(0,Math.round(qty*info.perPack));
-  return `${fmt(totalUnits)} ${info.unit} · ${fmt(totalUnits*info.metersPerUnit)} m`;
- }
- if(name.includes('elast')){
-  if(unit==='rolo'||unit==='unidade') return `${fmt(qty)} rolos · ${fmt(qty*25)} m`;
-  if(unit==='metro') return `${fmt(qty)} m`;
- }
- if(name.includes('refletivo')){
-  if(unit==='rolo'||unit==='unidade') return `${fmt(qty)} unidades · ${fmt(qty*50)} m`;
-  if(unit==='metro') return `${fmt(qty)} m`;
- }
- if(name.includes('cos')||name.includes('cós')){
-  if(unit==='rolo') return `${fmt(qty)} rolos · ${fmt(qty*50)} m`;
-  if(unit==='metro') return `${fmt(qty)} m`;
-  if(unit==='caixa'||unit==='pacote') return p.packSize?`${fmt(qty*p.packSize)} m conforme cadastro`:'Defina o conteúdo da embalagem';
- }
- if(['pacote','caixa'].includes(unit) && Number(p.packSize)>0) return `${fmt(qty*Number(p.packSize))} unidades de conteúdo`;
- return '—';
-}
-function updateLooseField(){
- const name=norm($('productName')?.value||''), unit=norm($('productUnit')?.value||'');
- const isElastic=name.includes('elast')&&unit==='pacote', isReflective=name.includes('refletivo')&&unit==='caixa';
- const field=$('productLooseQty')?.closest('.field'), label=$('productLooseLabel'), help=$('productLooseHelp');
- if(field)field.classList.toggle('hidden',!(isElastic||isReflective));
- if(label)label.textContent=isElastic?'Rolos avulsos (0 a 14)':isReflective?'Unidades avulsas (0 a 19)':'Quantidade avulsa (opcional)';
- const qtyLabel=$('productQtyLabel');
- if(qtyLabel)qtyLabel.textContent=isElastic?'Pacotes fechados de elástico *':isReflective?'Caixas fechadas de refletivo *':'Quantidade inicial *';
- if(help)help.textContent=isElastic?'Pacote de elástico = 15 rolos; cada rolo tem 25 metros.':isReflective?'Caixa de refletivo = 20 unidades; cada unidade tem 50 metros.':'Usado quando o produto possui embalagens abertas.';
-}
-
-
 function renderStock(){
  const q=norm($('stockSearch')?.value||''), u=$('stockUnit')?.value||'';
  const list=state.products.filter(p=>(!q||norm([p.name,p.category,p.color,p.notes].join(' ')).includes(q))&&(!u||p.unit===u));
- $('stockTable').innerHTML=table(['Produto','Categoria','Cor','Saldo','Unidade','Conteúdo por pacote/caixa','Equivalência física','Ações'],list.map(p=>[
- esc(p.name),esc(p.category||'Aviamento'),esc(p.color||'—'),`<strong>${packagingUnitInfo(p)?esc(stockPhysicalBalance(p)):fmt(p.qty)}</strong>`,esc(packagingUnitInfo(p)?'embalagem + avulso(s)':p.unit),p.packSize?fmt(p.packSize):'—',esc(stockPhysicalEquivalent(p)),
+ $('stockTable').innerHTML=table(['Produto','Categoria','Cor','Saldo','Unidade','Conteúdo por pacote/caixa','Ações'],list.map(p=>[
+ esc(p.name),esc(p.category||'Aviamento'),esc(p.color||'—'),`<strong>${fmt(p.qty)}</strong>`,esc(p.unit),p.packSize?fmt(p.packSize):'—',
  `<button class="secondary small" data-edit-product="${esc(p.id)}">Editar</button> <button class="danger small" data-delete-product="${esc(p.id)}">Excluir</button>`
  ]));
 }
@@ -474,22 +382,14 @@ document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>g
 document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.goto)));
 $('stockSearch').addEventListener('input',renderStock);$('stockUnit').addEventListener('change',renderStock);
 $('seedProducts').addEventListener('click',seed);
-$('productName').addEventListener('input',updateLooseField);
-$('productUnit').addEventListener('change',updateLooseField);
-updateLooseField();
-function clearProductForm(){ $('productForm').reset();$('productId').value='';$('productQty').value='0';$('productLooseQty').value='0';$('productMinQty').value='';$('productCode').value='';$('productFormTitle').textContent='Novo produto';updateLooseField();}
+function clearProductForm(){ $('productForm').reset();$('productId').value='';$('productQty').value='0';$('productMinQty').value='';$('productCode').value='';$('productFormTitle').textContent='Novo produto';}
 $('clearProduct').addEventListener('click',clearProductForm);
 $('productForm').addEventListener('submit',e=>{
  e.preventDefault();
- const id=$('productId').value, name=$('productName').value.trim(), unit=$('productUnit').value;
- let qty=Number($('productQty').value), loose=Math.max(0,Math.floor(Number($('productLooseQty').value)||0));
- const info=packagingUnitInfo({name,unit});
- if(info){
-  if(loose>=info.perPack)return toast(`A quantidade avulsa deve ser de 0 a ${info.perPack-1}.`);
-  qty=Math.floor(qty)+loose/info.perPack;
- }
- const p={id:id||uid(),name,category:$('productCategory').value,color:$('productColor').value.trim(),unit,qty,packSize:Number($('productPackSize').value)||0,code:$('productCode').value.trim(),minQty:$('productMinQty').value===''?null:Number($('productMinQty').value),notes:$('productNotes').value.trim()}; p.destination=p.category;
- if(!p.name||!Number.isFinite(p.qty)||p.qty<0)return toast('Confira o nome e a quantidade.');
+ const id=$('productId').value, p={id:id||uid(),name:$('productName').value.trim(),category:$('productCategory').value,color:$('productColor').value.trim(),unit:$('productUnit').value,qty:Number($('productQty').value),packSize:Number($('productPackSize').value)||0,code:$('productCode').value.trim(),minQty:$('productMinQty').value===''?null:Number($('productMinQty').value),notes:$('productNotes').value.trim()}; p.destination=p.category;
+ if(!p.name||!Number.isFinite(p.qty)||p.qty<0||!Number.isFinite(p.packSize)||p.packSize<0)return toast('Confira nome, quantidade e conteúdo da embalagem.');
+ if(id){const old=state.products.find(x=>x.id===id);if(old && p.qty!==Number(old.qty))return toast('Não altere o saldo pelo cadastro. Use Movimentações ou Inventário para manter o histórico.');if(old && p.unit!==old.unit)return toast('Não altere a unidade de um produto com cadastro existente. Crie um novo produto na unidade correta e faça o inventário.');}
+ if(p.code && state.products.some(x=>x.id!==id && String(x.code||'').trim()===p.code))return toast('Este código já está cadastrado em outro produto.');
  const duplicate=state.products.find(x=>x.id!==id&&norm(x.name)===norm(p.name)&&norm(x.color||'')===norm(p.color||''));
  if(duplicate&&!confirm('Já existe um produto com este nome e cor. Deseja cadastrar mesmo assim?'))return;
  if(id){const i=state.products.findIndex(x=>x.id===id);if(i>=0)state.products[i]=p;}else state.products.push(p);
@@ -499,7 +399,7 @@ document.addEventListener('click',e=>{
  const edit=e.target.closest('[data-edit-product]')?.dataset.editProduct;
  const del=e.target.closest('[data-delete-product]')?.dataset.deleteProduct;
  const view=e.target.closest('[data-view-cut]')?.dataset.viewCut;
- if(edit){const p=state.products.find(x=>x.id===edit);if(!p)return;goto('produto');$('productId').value=p.id;$('productName').value=p.name;$('productCategory').value=p.category||'Aviamento';$('productColor').value=p.color||'';$('productUnit').value=p.unit;$('productPackSize').value=p.packSize||'';$('productCode').value=p.code||'';$('productMinQty').value=p.minQty??'';$('productNotes').value=p.notes||'';const info=packagingUnitInfo(p);if(info){const totalUnits=Math.round((Number(p.qty)||0)*info.perPack);$('productQty').value=Math.floor(totalUnits/info.perPack);$('productLooseQty').value=totalUnits%info.perPack;}else{$('productQty').value=p.qty;$('productLooseQty').value='0';}$('productFormTitle').textContent='Editar produto';updateLooseField();}
+ if(edit){const p=state.products.find(x=>x.id===edit);if(!p)return;goto('produto');$('productId').value=p.id;$('productName').value=p.name;$('productCategory').value=p.category||'Aviamento';$('productColor').value=p.color||'';$('productUnit').value=p.unit;$('productQty').value=p.qty;$('productPackSize').value=p.packSize||'';$('productCode').value=p.code||'';$('productMinQty').value=p.minQty??'';$('productNotes').value=p.notes||'';$('productFormTitle').textContent='Editar produto';}
  if(del){const p=state.products.find(x=>x.id===del);if(!p)return;if(Number(p.qty)!==0&&!confirm('Este produto tem saldo. Excluir mesmo assim?'))return;if(!confirm('Excluir '+p.name+'?'))return;state.products=state.products.filter(x=>x.id!==del);persist();renderAll();toast('Produto excluído.');}
  if(view){const c=state.cuts.find(x=>x.id===view);if(c){alert(`Corte: ${c.number||'—'}\nReferência: ${c.referenceName}\nPeças: ${c.totalPieces}\n\n${c.items.map(i=>`${i.name}: ${fmt(i.amount)} ${i.unit}${i.detail?' ('+i.detail+')':''}`).join('\n')}`);}}
 });
@@ -519,6 +419,8 @@ function calculateCut(){
    items.push({name,amount:total,unit:'unidades',detail:`peso de referência ${fmt(total*.4)} g`,grams:total*.4});
   } else if(name==='Zíper 15 cm'){
    items.push({name,amount:total,unit:'unidades',detail:`distribuir pela cor cadastrada; pacotes conforme cadastro`});
+  } else if(name==='Cordão'){
+   items.push({name,amount:0,unit:'unidades',requiresManual:true,detail:'Consumo por peça não foi definido. Informe a quantidade manualmente antes de enviar; o sistema não assume 1 por peça.'});
   } else if(name==='Elástico'){
    const meters=total*.8;
    const rolls=Math.ceil(meters/25);
@@ -576,7 +478,7 @@ function stockUnitFactor(product, calculatedUnit){
  // Conversões fixas corretas: elástico = 15 rolos x 25 m por pacote (375 m);
  // refletivo = 20 unidades x 50 m por caixa (1.000 m). Não usar packSize
  // como metros, pois o cadastro pode guardar 15 rolos ou 20 unidades nele.
- if(base==='metro' && pn.includes('elast')){
+ if(base==='metro' && pn.includes('elastic')){
   if(pu==='pacote') return 375;
   if(pu==='rolo' || pu==='unidade') return 25;
   if(pu==='metro') return 1;
@@ -590,7 +492,8 @@ function stockUnitFactor(product, calculatedUnit){
  if(base==='grama'&&pu==='kg') return 1000;
  if(base==='metro'&&['pacote','caixa'].includes(pu)){
   if(Number(product.packSize)>0) return Number(product.packSize);
-  if(pn.includes('cos')) return pu==='caixa'?65000:65000;
+  // Sem conteúdo cadastrado, não inventar conversão de pacote/caixa para metros.
+  return 0;
  }
  if(base==='metro'&&pu==='rolo') return Number(product.packSize)||50;
  if(base==='metro'&&pu==='unidade') return Number(product.packSize)||0;
@@ -645,7 +548,7 @@ function updateBulkRow(index){
  const factor=stockUnitFactor(product,item.unit);
  if(!(factor>0)){hint.textContent=`Unidade incompatível: o cálculo está em ${item.unit}, mas o estoque está em ${product.unit}. Informe o conteúdo por pacote/caixa ou cadastre uma unidade compatível.`;qty.value='0';return;}
  const converted=stockWithdrawalQty(item,product);
- qty.value=converted.toFixed(8);
+ qty.value=converted.toFixed(3);
  const breakdown=packagingBreakdown(item,product);
  hint.textContent=`Conversão: ${fmt(item.amount)} ${item.unit} = ${fmt(converted)} ${product.unit} (1 ${product.unit} = ${fmt(factor)} ${item.unit}).`+(breakdown?' '+breakdown:'');
 }
@@ -656,14 +559,16 @@ function openBulkIssue(){
  const products=state.products;
  const rows=(currentCalc.items||[]).map((item,index)=>{
   const itemName=norm(item.name);
-  let matches=products.filter(p=>norm(p.name)===itemName || (itemName==='ziper 15 cm' && norm(p.name).includes('ziper')));
+  let matches=products.filter(p=>norm(p.name)===itemName);
+  // Zíper: não selecionar uma cor automaticamente. A pessoa deve escolher a cor correta.
   if(!matches.length && itemName.startsWith('etiqueta de composicao')) matches=products.filter(p=>norm(p.name)===itemName);
-  const selected=matches[0]?.id||'';
-  const options=products.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(productLabel(p))} — saldo ${fmt(p.qty)}</option>`).join('');
+  const selected=(itemName==='ziper 15 cm'?'':(matches[0]?.id||''));
+  const compatible=products.filter(p=>matches.some(m=>m.id===p.id));
+  const options=compatible.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(productLabel(p))} — saldo ${fmt(p.qty)}</option>`).join('');
   const selectedProduct=products.find(p=>p.id===selected);
   const factor=selectedProduct?stockUnitFactor(selectedProduct,item.unit):1;
-  const defaultQty=selectedProduct&&factor>0?stockWithdrawalQty(item,selectedProduct):Number(item.amount)||0;
-  return `<div class="card bulk-line" style="margin-bottom:10px" data-bulk-line="${index}"><div class="fieldgrid"><div class="field"><label>Aviamento calculado</label><input readonly value="${esc(item.name)}"></div><div class="field"><label>Necessidade calculada</label><input readonly value="${fmt(item.amount)} ${esc(item.unit)}"></div><div class="field"><label>Produto do estoque</label><select data-bulk-product="${index}"><option value="">Selecione o produto</option>${options}</select></div><div class="field"><label>Quantidade a retirar (unidade do estoque)</label><input data-bulk-qty="${index}" type="number" min="0" step="0.00000001" value="${defaultQty.toFixed(8)}"></div><div class="field full"><small class="muted" data-bulk-conversion="${index}">${selectedProduct&&factor>0?`Conversão: ${fmt(item.amount)} ${esc(item.unit)} = ${fmt(defaultQty)} ${esc(selectedProduct.unit)}. ${esc(packagingBreakdown(item,selectedProduct))}`:'Selecione um produto compatível com a unidade calculada.'}</small></div></div></div>`;
+  const defaultQty=selectedProduct&&factor>0&&!item.requiresManual?stockWithdrawalQty(item,selectedProduct):0;
+  return `<div class="card bulk-line" style="margin-bottom:10px" data-bulk-line="${index}"><div class="fieldgrid"><div class="field"><label>Aviamento calculado</label><input readonly value="${esc(item.name)}"></div><div class="field"><label>Necessidade calculada</label><input readonly value="${fmt(item.amount)} ${esc(item.unit)}"></div><div class="field"><label>Produto do estoque</label><select data-bulk-product="${index}"><option value="">${compatible.length?'Selecione o produto':'Nenhum produto compatível cadastrado'}</option>${options}</select></div><div class="field"><label>Quantidade a retirar (unidade do estoque)</label><input data-bulk-qty="${index}" type="number" min="0" step="0.001" value="${defaultQty.toFixed(3)}"></div><div class="field full"><small class="muted" data-bulk-conversion="${index}">${item.requiresManual?'Consumo não definido: informe a quantidade manualmente e selecione o produto correto.':(selectedProduct&&factor>0?`Conversão: ${fmt(item.amount)} ${esc(item.unit)} = ${fmt(defaultQty)} ${esc(selectedProduct.unit)}. ${esc(packagingBreakdown(item,selectedProduct))}`:'Selecione um produto compatível com a unidade calculada.')}</small></div></div></div>`;
  }).join('');
  $('bulkIssueItems').innerHTML=rows||'<div class="empty">Este cálculo não possui aviamentos para enviar.</div>';
  (currentCalc.items||[]).forEach((item,index)=>{const sel=$(`[data-bulk-product="${index}"]`);if(sel)sel.addEventListener('change',()=>updateBulkRow(index));});
@@ -674,20 +579,25 @@ $('cancelBulkIssue').addEventListener('click',()=>$('bulkIssuePanel').classList.
 $('confirmBulkIssue').addEventListener('click',()=>{
  if(!currentCalc)return;
  const workshop=$('bulkWorkshop').value.trim();if(!workshop)return toast('Informe o nome da oficina.');
- const lines=(currentCalc.items||[]).map((item,index)=>({item,index,productId:$(`[data-bulk-product="${index}"]`)?.value||'',qty:Number($(`[data-bulk-qty="${index}"]`)?.value)})).filter(x=>x.qty>0);
- if(!lines.length)return toast('Informe ao menos um item com quantidade maior que zero.');
+ const lines=(currentCalc.items||[]).map((item,index)=>({item,index,productId:$(`[data-bulk-product="${index}"]`)?.value||'',qty:Number($(`[data-bulk-qty="${index}"]`)?.value)}));
+ if(!lines.length)return toast('Este corte não possui aviamentos para enviar.');
+ const incomplete=lines.find(line=>!line.productId||!Number.isFinite(line.qty)||line.qty<=0);
+ if(incomplete)return toast(`Envio cancelado: preencha produto e quantidade para todos os aviamentos, incluindo ${incomplete.item.name}. Nenhuma saída foi registrada.`);
+ const totalsByProduct=new Map();
  for(const line of lines){
   const p=state.products.find(x=>x.id===line.productId);if(!p)return toast(`Selecione o produto do estoque para ${line.item.name}.`);
   if(!Number.isFinite(line.qty)||line.qty<=0)return toast(`Confira a quantidade de ${line.item.name}.`);
   const factor=stockUnitFactor(p,line.item.unit);if(!(factor>0))return toast(`Unidade incompatível para ${line.item.name}. Cadastre conteúdo por pacote/caixa ou escolha produto em ${line.item.unit}.`);
-  const baseQty=line.qty*factor;
-  if(line.qty>Number(p.qty)+1e-7)return toast(`Saldo insuficiente para ${p.name}. Disponível: ${fmt(p.qty)} ${p.unit}.`);
-  line.baseQty=baseQty;line.factor=factor;
+  const expected=line.item.requiresManual?null:stockWithdrawalQty(line.item,p);
+  if(expected!==null && Math.abs(line.qty-expected)>0.0005)return toast(`Quantidade de ${line.item.name} diferente do cálculo. Esperado: ${fmt(expected)} ${p.unit}. Ajuste a regra ou revise o produto antes de enviar.`);
+  const baseQty=line.qty*factor;line.baseQty=baseQty;line.factor=factor;
+  totalsByProduct.set(p.id,(totalsByProduct.get(p.id)||0)+line.qty);
  }
+ for(const [productId,totalQty] of totalsByProduct){const p=state.products.find(x=>x.id===productId);if(totalQty>Number(p.qty)+1e-9)return toast(`Saldo insuficiente para ${p.name}. Total solicitado: ${fmt(totalQty)} ${p.unit}; disponível: ${fmt(p.qty)} ${p.unit}.`);}
  const now=new Date().toISOString();
  for(const line of lines){
   const p=state.products.find(x=>x.id===line.productId),before=Number(p.qty)||0;
-  p.qty=Math.max(0,Number((before-line.qty).toFixed(8)));
+  p.qty=Number((before-line.qty).toFixed(3));
   state.moves.push({id:uid(),date:now,type:'saida',productId:p.id,productName:productLabel(p),qty:line.qty,unit:p.unit,baseQty:line.baseQty,baseUnit:line.item.unit,workshop,cut:currentCalc.number||'',referenceId:currentCalc.referenceId||'',referenceName:currentCalc.referenceName||'',notes:'Envio do corte completo para oficina',balanceBefore:before,balanceAfter:Number(p.qty),actor:'Local user'});
  }
  persist();renderAll();$('bulkIssuePanel').classList.add('hidden');toast(`Saída registrada: ${lines.length} item(ns) enviados para ${workshop}.`);
@@ -696,7 +606,7 @@ $('moveForm').addEventListener('submit',e=>{
  e.preventDefault();const p=state.products.find(x=>x.id===$('moveProduct').value);if(!p)return toast('Selecione um produto.');
  const type=$('moveType').value,qty=Number($('moveQty').value),before=Number(p.qty)||0;if(!Number.isFinite(qty)||qty<=0)return toast('Informe uma quantidade válida.');
  if(type==='saida'&&qty>Number(p.qty)+1e-9)return toast(`Saldo insuficiente. Disponível: ${fmt(p.qty)} ${p.unit}.`);
- p.qty=Math.max(0,Number((Number(p.qty)+(type==='entrada'?qty:-qty)).toFixed(8)));
+ p.qty=Number((Number(p.qty)+(type==='entrada'?qty:-qty)).toFixed(3));
  const ref=REFERENCES.find(r=>r.id===$('moveReference').value);
  state.moves.push({id:uid(),date:new Date().toISOString(),type,productId:p.id,productName:productLabel(p),qty,unit:p.unit,workshop:$('moveWorkshop').value.trim(),cut:$('moveCut').value.trim(),referenceId:ref?.id||'',referenceName:ref?.name||'',notes:$('moveNotes').value.trim(),balanceBefore:before,balanceAfter:Number(p.qty),actor:'Local user'});
  persist();renderAll();$('moveQty').value='';$('moveWorkshop').value='';$('moveCut').value='';$('moveReference').value='';$('moveNotes').value='';toast(type==='entrada'?'Entrada registrada.':'Saída registrada.');
@@ -733,29 +643,32 @@ function renderDraft(target,items,mode){
  if(!items.length){$(target).innerHTML='<div class="notice warning">Não consegui identificar linhas com quantidade. Revise o texto ou preencha manualmente.</div>';return;}
  $(target).innerHTML=`<div class="divider"></div><h4>Itens interpretados — revise antes de confirmar</h4>${items.map((x,i)=>`<div class="fieldgrid" style="margin:10px 0"><div class="field"><label>Produto ${i+1}</label><input data-draft-name="${i}" value="${esc(x.name)}"></div><div class="field"><label>Quantidade / unidade</label><div style="display:flex;gap:6px"><input data-draft-qty="${i}" type="number" min="0" step="0.001" value="${x.qty}" style="width:55%"><select data-draft-unit="${i}" style="width:45%">${['unidade','pacote','caixa','rolo','metro','grama','kg'].map(u=>`<option ${u===x.unit?'selected':''}>${u}</option>`).join('')}</select></div></div></div>`).join('')}<div class="actions"><button class="primary" id="confirmDraft">Confirmar itens</button></div>`;
  $('confirmDraft').addEventListener('click',()=>{
-  const vals=items.map((x,i)=>({name:document.querySelector(`[data-draft-name="${i}"]`).value.trim(),qty:Number(document.querySelector(`[data-draft-qty="${i}"]`).value),unit:document.querySelector(`[data-draft-unit="${i}"]`).value})).filter(x=>x.name&&Number.isFinite(x.qty)&&x.qty>0);
-  if(!vals.length)return toast('Nenhum item válido.');
-  const missing=[];
-  vals.forEach(v=>{
+  const vals=items.map((x,i)=>({name:document.querySelector(`[data-draft-name="${i}"]`).value.trim(),qty:Number(document.querySelector(`[data-draft-qty="${i}"]`).value),unit:document.querySelector(`[data-draft-unit="${i}"]`).value}));
+  if(!vals.length||vals.some(x=>!x.name||!Number.isFinite(x.qty)||x.qty<=0))return toast('Confira todos os nomes e quantidades. Nenhuma alteração foi feita.');
+  const prepared=[], errors=[];
+  for(const v of vals){
    let p=productMatch(v.name);
+   // Match common "zíper preto" phrasing to the canonical product and exact color.
+   if(!p){const m=norm(v.name).match(/^(?:ziper|fecho)\s+(preto|azul|bege|cinza|caqui|areia)$/);if(m)p=productMatch('Zíper 15 cm',m[1]);}
    if(mode==='entrada'){
-    if(!p){p={id:uid(),name:v.name,category:'Aviamento',color:'',unit:v.unit,qty:0,packSize:0,notes:'Criado por foto/voz'};state.products.push(p);}
-    if(p.unit!==v.unit){missing.push(`${v.name}: unidade informada ${v.unit}, produto cadastrado em ${p.unit}`);return;}
-    p.qty=Number((Number(p.qty)+v.qty).toFixed(3));
-    state.moves.push({id:uid(),date:new Date().toISOString(),type:'entrada',productId:p.id,productName:productLabel(p),qty:v.qty,unit:p.unit,workshop:'',cut:'',referenceName:'',notes:'Cadastro por '+(target==='photoDraft'?'foto':'voz')});
+    if(p && p.unit!==v.unit){errors.push(`${v.name}: unidade informada ${v.unit}, produto cadastrado em ${p.unit}`);continue;}
+    if(!p && /^ziper\s+(preto|azul|bege|cinza|caqui|areia)$/i.test(norm(v.name))){errors.push(`${v.name}: não encontrei a cor correspondente cadastrada. Cadastre/seleciona o zíper correto; não será criado um produto duplicado.`);continue;}
+    prepared.push({v,p,create:!p});
    } else if(mode==='saida'){
-    if(!p){missing.push(`${v.name}: produto não encontrado no estoque`);return;}
-    if(p.unit!==v.unit){missing.push(`${v.name}: unidade informada ${v.unit}, produto cadastrado em ${p.unit}`);return;}
-    if(v.qty>Number(p.qty)){missing.push(`${v.name}: saldo insuficiente (disponível ${fmt(p.qty)} ${p.unit})`);return;}
-    p.qty=Number((Number(p.qty)-v.qty).toFixed(3));
-    state.moves.push({id:uid(),date:new Date().toISOString(),type:'saida',productId:p.id,productName:productLabel(p),qty:v.qty,unit:p.unit,workshop:'',cut:'',referenceName:'',notes:'Saída por comando de voz'});
+    if(!p){errors.push(`${v.name}: produto não encontrado no estoque`);continue;}
+    if(p.unit!==v.unit){errors.push(`${v.name}: unidade informada ${v.unit}, produto cadastrado em ${p.unit}`);continue;}
+    if(v.qty>Number(p.qty)){errors.push(`${v.name}: saldo insuficiente (disponível ${fmt(p.qty)} ${p.unit})`);continue;}
+    prepared.push({v,p,create:false});
    }
-  });
-  persist();renderAll();
-  if(mode==='entrada')toast(missing.length?'Itens válidos adicionados; confira os avisos.':'Itens adicionados ao estoque.');
-  else toast(missing.length?'Saídas válidas registradas; confira os avisos.':'Saída registrada.');
-  if(missing.length)alert(missing.join('\n'));
-  $(target).innerHTML='';
+  }
+  if(errors.length){alert('Nenhuma movimentação foi registrada. Corrija estes itens e tente novamente:\n'+errors.join('\n'));return;}
+  const now=new Date().toISOString();
+  for(const x of prepared){const v=x.v;let p=x.p;
+   if(x.create){p={id:uid(),name:v.name,category:'Aviamento',color:'',unit:v.unit,qty:0,packSize:0,notes:'Criado por foto/voz'};state.products.push(p);}
+   if(mode==='entrada')p.qty=Number((Number(p.qty)+v.qty).toFixed(3));else p.qty=Number((Number(p.qty)-v.qty).toFixed(3));
+   state.moves.push({id:uid(),date:now,type:mode==='entrada'?'entrada':'saida',productId:p.id,productName:productLabel(p),qty:v.qty,unit:p.unit,workshop:'',cut:'',referenceName:'',notes:mode==='entrada'?'Cadastro por '+(target==='photoDraft'?'foto':'voz'):'Saída por comando de voz'});
+  }
+  persist();renderAll();toast(mode==='entrada'?'Itens adicionados ao estoque.':'Saída registrada.');$(target).innerHTML='';
  });
 }
 $('parseOcr').addEventListener('click',()=>renderDraft('photoDraft',parseLines($('ocrText').value),'entrada'));
@@ -807,7 +720,7 @@ function refreshInvProducts(){const el=$('invProduct');if(el)el.innerHTML='<opti
 function renderAuditHistory(){const rows=(state.audits||[]).slice().reverse().map(a=>[dateFmt(a.date),esc(a.productName),fmt(a.before)+' → '+fmt(a.counted)+' '+esc(a.unit),`<span class="audit-diff">${a.diff>0?'+':''}${fmt(a.diff)}</span>`,esc(a.actor||'Local user')]);$('invHistory').innerHTML=table(['Data','Produto','Sistema → contado','Diferença','Responsável'],rows,'Nenhum ajuste físico registrado.');}
 $('invCompare')?.addEventListener('click',()=>{const p=state.products.find(x=>x.id===$('invProduct').value), raw=$('invCount').value;if(!p||raw==='')return toast('Selecione o produto e informe a quantidade contada.');const counted=Number(raw);if(!Number.isFinite(counted)||counted<0)return toast('A contagem deve ser zero ou maior.');pendingInventory={id:p.id,name:productLabel(p),unit:p.unit,before:Number(p.qty)||0,counted,diff:counted-(Number(p.qty)||0)};$('invResult').innerHTML=`<strong>${esc(p.name)}</strong><br>Saldo no sistema: ${fmt(pendingInventory.before)} ${esc(p.unit)}<br>Contagem física: ${fmt(counted)} ${esc(p.unit)}<br>Diferença: <span class="audit-diff">${pendingInventory.diff>0?'+':''}${fmt(pendingInventory.diff)} ${esc(p.unit)}</span><br><small>O saldo ainda não foi alterado.</small>`;$('invConfirm').disabled=pendingInventory.diff===0;});
 $('invConfirm')?.addEventListener('click',()=>{if(!pendingInventory)return;const p=state.products.find(x=>x.id===pendingInventory.id);if(!p)return toast('Produto não encontrado.');if(!confirm(`Confirmar ajuste de ${p.name}? Saldo atual: ${fmt(p.qty)} ${p.unit}; novo saldo: ${fmt(pendingInventory.counted)} ${p.unit}.`))return;const before=Number(p.qty)||0;p.qty=pendingInventory.counted;state.audits=state.audits||[];state.audits.push({id:uid(),date:new Date().toISOString(),productId:p.id,productName:productLabel(p),unit:p.unit,before,counted:p.qty,diff:p.qty-before,actor:'Local user'});state.moves.push({id:uid(),date:new Date().toISOString(),type:'ajuste',productId:p.id,productName:productLabel(p),qty:Math.abs(p.qty-before),unit:p.unit,workshop:'',cut:'',referenceName:'Inventário físico',notes:'Ajuste confirmado após contagem física',balanceBefore:before,balanceAfter:p.qty,actor:'Local user'});persist();renderAll();renderAuditHistory();pendingInventory=null;$('invConfirm').disabled=true;$('invResult').textContent='Ajuste registrado no histórico.';toast('Inventário ajustado e registrado.');});
-function renderReports(){const days=$('reportPeriod')?.value||'30',since=days==='all'?0:Date.now()-Number(days)*86400000;const moves=state.moves.filter(m=>new Date(m.date).getTime()>=since);const outs=moves.filter(m=>m.type==='saida');const totalOut=outs.reduce((n,m)=>n+Number(m.qty||0),0);const totalIn=moves.filter(m=>m.type==='entrada').reduce((n,m)=>n+Number(m.qty||0),0);$('reportSummary').innerHTML=[['Entradas',fmt(totalIn)],['Saídas',fmt(totalOut)],['Movimentações',moves.length]].map(([a,b])=>`<div class="card span4"><div class="statlabel">${a}</div><div class="statvalue">${b}</div></div>`).join('');const grouped=new Map();outs.forEach(m=>{const k=(m.productName||'Produto')+' · '+(m.unit||'');grouped.set(k,(grouped.get(k)||0)+Number(m.qty||0));});$('consumptionTable').innerHTML=table(['Produto','Quantidade de saída no período'],[...grouped].sort((a,b)=>b[1]-a[1]).map(([k,v])=>[esc(k),fmt(v)]),'Nenhuma saída no período selecionado.');}
+function renderReports(){const days=$('reportPeriod')?.value||'30',since=days==='all'?0:Date.now()-Number(days)*86400000;const moves=state.moves.filter(m=>new Date(m.date).getTime()>=since);const outs=moves.filter(m=>m.type==='saida');const groupedIn=new Map(),groupedOut=new Map();moves.filter(m=>m.type==='entrada').forEach(m=>{const k=String(m.unit||'unidade');groupedIn.set(k,(groupedIn.get(k)||0)+Number(m.qty||0));});outs.forEach(m=>{const k=(m.productName||'Produto')+' · '+(m.unit||'');groupedOut.set(k,(groupedOut.get(k)||0)+Number(m.qty||0));});const inSummary=[...groupedIn].map(([u,q])=>fmt(q)+' '+u).join(' · ')||'0';const outSummary=[...new Set(outs.map(m=>String(m.unit||'unidade')))].map(u=>fmt(outs.filter(m=>String(m.unit||'unidade')===u).reduce((n,m)=>n+Number(m.qty||0),0))+' '+u).join(' · ')||'0';$('reportSummary').innerHTML=[['Entradas por unidade',inSummary],['Saídas por unidade',outSummary],['Movimentações',moves.length]].map(([a,b])=>`<div class="card span4"><div class="statlabel">${a}</div><div class="statvalue" style="font-size:18px">${esc(b)}</div></div>`).join('');$('consumptionTable').innerHTML=table(['Produto','Quantidade de saída no período'],[...groupedOut].sort((a,b)=>b[1]-a[1]).map(([k,v])=>[esc(k),fmt(v)]),'Nenhuma saída no período selecionado.');}
 $('reportPeriod')?.addEventListener('change',renderReports);$('reportCsv')?.addEventListener('click',()=>{const days=$('reportPeriod').value,since=days==='all'?0:Date.now()-Number(days)*86400000;const rows=[['Data','Tipo','Produto','Quantidade','Unidade','Oficina','Corte','Observação'],...state.moves.filter(m=>new Date(m.date).getTime()>=since).map(m=>[m.date,m.type,m.productName,m.qty,m.unit,m.workshop||'',m.cut||'',m.notes||''])];const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='relatorio-consumo.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
 $('scanFind')?.addEventListener('click',()=>{const code=$('scanCode').value.trim();if(!code)return toast('Digite ou leia um código.');const p=state.products.find(p=>String(p.code||'').trim()===code||String(p.id)===code);$('scanResult').innerHTML=p?`<strong>${esc(productLabel(p))}</strong><br>Saldo: ${fmt(p.qty)} ${esc(p.unit)}<div class="actions"><button class="primary" id="scanGoStock">Abrir estoque</button><button class="secondary" id="scanGoMove">Registrar movimentação</button></div>`:'Nenhum produto encontrado com esse código. Cadastre o código no produto e tente novamente.';$('scanGoStock')?.addEventListener('click',()=>goto('estoque'));$('scanGoMove')?.addEventListener('click',()=>{goto('movimentar');$('moveProduct').value=p.id;});});
 $('scanStart')?.addEventListener('click',async()=>{if(!('BarcodeDetector'in window))return toast('Este navegador não oferece leitura nativa de códigos. Use a busca manual ou um leitor USB/Bluetooth.');try{scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});const v=$('scanVideo');v.srcObject=scannerStream;v.classList.add('video-active');await v.play();const detector=new BarcodeDetector({formats:['qr_code','code_128','ean_13','ean_8','upc_a','upc_e']});const loop=async()=>{if(!scannerStream)return;try{const codes=await detector.detect(v);if(codes.length){$('scanCode').value=codes[0].rawValue;$('scanFind').click();stopScanner();return;}}catch(e){}scannerFrame=requestAnimationFrame(loop);};loop();}catch(e){toast('Não foi possível abrir a câmera. Confira a permissão e use HTTPS.');}});
@@ -815,18 +728,6 @@ function stopScanner(){if(scannerFrame)cancelAnimationFrame(scannerFrame);scanne
 $('scanStop')?.addEventListener('click',stopScanner);window.addEventListener('pagehide',stopScanner);
 $('apiCheck')?.addEventListener('click',async()=>{let base=$('apiBase').value.trim().replace(/\/$/,'');if(!base)return toast('Informe a URL da API.');$('apiStatus').value='Testando…';try{const r=await fetch(base+'/api/health',{headers:{'Accept':'application/json'}});if(!r.ok)throw new Error('HTTP '+r.status);$('apiStatus').value='Conectado';toast('Servidor respondeu. Isso não confirma login nem sincronização.');}catch(e){$('apiStatus').value='Falha de conexão';toast('Não foi possível validar a API. Confira URL, CORS e servidor.');}});
 $('apiExport')?.addEventListener('click',()=> $('exportBtn').click());
-
-
-const THEME_KEY='aviamentos_theme_v1';
-function applyTheme(theme){
- const normalized=theme==='light'?'light':'dark';
- document.body.dataset.theme=normalized;
- const btn=$('themeToggle');
- if(btn)btn.textContent=normalized==='light'?'🌙 Tema escuro':'☀️ Tema claro';
- try{localStorage.setItem(THEME_KEY,normalized);}catch(e){}
-}
-$('themeToggle')?.addEventListener('click',()=>applyTheme(document.body.dataset.theme==='light'?'dark':'light'));
-try{applyTheme(localStorage.getItem(THEME_KEY)||'dark');}catch(e){applyTheme('dark');}
 
 async function init(){
  buildSizeGrid();renderProductSelects();renderAll();refreshInvProducts();renderAuditHistory();renderReports();
@@ -836,6 +737,7 @@ async function init(){
   const response=await fetch('/api/state',{headers:{'Accept':'application/json'}});
   if(!response.ok)throw new Error('HTTP '+response.status);
   const remote=await response.json();
+  remoteRevision=Number(remote.revision)||0;
   if(remote && remote.empty===false && remote.state && typeof remote.state==='object'){
    const saved=remote.state;
    state={products:Array.isArray(saved.products)?saved.products:[],moves:Array.isArray(saved.moves)?saved.moves:[],cuts:Array.isArray(saved.cuts)?saved.cuts:[],audits:Array.isArray(saved.audits)?saved.audits:[]};
@@ -860,7 +762,9 @@ async function init(){
  }
  renderProductSelects();renderAll();refreshInvProducts();renderAuditHistory();renderReports();
 }
-init();
+async function bootWithAuth(){const overlay=$('authOverlay');try{const r=await fetch('/api/auth/me');const auth=await r.json();if(!auth.loginConfigured){overlay.style.display='grid';$('authError').textContent='O servidor precisa de STOCK_ADMIN_PASSWORD e SESSION_SECRET configurados no Render.';$('authError').classList.remove('hidden');return;}if(auth.authenticated){overlay.style.display='none';await init();return;}overlay.style.display='grid';}catch(e){overlay.style.display='none';await init();}}
+$('authForm')?.addEventListener('submit',async e=>{e.preventDefault();const err=$('authError');err.classList.add('hidden');try{const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('authPassword').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Falha no login.');$('authPassword').value='';$('authOverlay').style.display='none';await init();}catch(e){err.textContent=e.message;err.classList.remove('hidden');}});
+bootWithAuth();
 })();
 </script>
 </body>
