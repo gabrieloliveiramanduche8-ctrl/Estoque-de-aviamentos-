@@ -14,9 +14,9 @@ test('rejeita códigos duplicados no backup',()=>assert.strictEqual(ctx.validate
 test('rejeita quantidade inválida em movimentação',()=>assert.strictEqual(ctx.validateImportedBackup({products:[],moves:[{qty:-4}],cuts:[]}).ok,false));
 test('código duplicado também é bloqueado no cadastro',()=>assert(html.includes("String(x.code||'').trim()===p.code")));
 test('conferência usa tolerância numérica para diferenças de ponto flutuante',()=>assert(html.includes('const tolerance=Math.max(0.001,Math.abs(planned)*1e-9)')));
-test('backup exportado identifica a versão 1.3.3',()=>assert(html.includes("version:'1.3.3'")));
+test('backup exportado identifica a versão 1.4.1',()=>assert(html.includes("version:'1.4.1'")));
 test('restauração pede confirmação com quantidades e valida os dados antes',()=>assert(html.includes('const validation=validateImportedBackup(data)')&&html.includes('${data.products.length} produto(s)')));
-test('não altera regras de consumo já cadastradas',()=>{assert(html.includes('amount:0,unit:\'unidades\',requiresManual:true'));assert(html.includes('const meters=total*1.3'));assert(html.includes('g.qty*.35'));assert(html.includes('total*.4'));});
+test('não altera regras de consumo já cadastradas',()=>{assert(html.includes('amount:total,unit:\'unidades\''));assert(html.includes('const meters=total*1.3'));assert(html.includes('g.qty*.35'));assert(html.includes('total*.4'));});
 test('novas páginas de reservas, embalagens, previsão e assistente existem',()=>{for(const id of ['reservas','embalagens','previsao','assistente'])assert(html.includes('id="page-'+id+'"'));});
 test('reservas não baixam estoque físico',()=>assert(html.includes('Reserva criada. O saldo físico não foi baixado.')));
 test('bloqueia reserva acima do disponível',()=>assert(html.includes('qty>availableQty(p)+1e-9')));
@@ -24,9 +24,9 @@ test('código de embalagem é único',()=>assert(html.includes("x.code.toLowerCa
 test('rastreio de embalagem não altera saldo geral',()=>assert(html.includes('sem alterar o saldo geral')));
 test('previsão usa somente saídas registradas na unidade do produto',()=>assert(html.includes("m.type==='saida'&&m.productId===p.id")&&html.includes('String(m.unit||p.unit)===String(p.unit)')));
 test('assistente identifica explicitamente que não é IA generativa',()=>assert(html.includes('não é um modelo de IA generativa')));
-test('estado antigo continua aceito sem arrays novos',()=>assert(html.includes("reservations:Array.isArray(s.reservations)?s.reservations:[],packages:Array.isArray(s.packages)?s.packages:[]")));
+test('estado antigo continua aceito sem arrays novos',()=>assert(html.includes("reservations:Array.isArray(s.reservations)?s.reservations:[],packages:Array.isArray(s.packages)?s.packages:[],workshopStock:Array.isArray(s.workshopStock)?s.workshopStock:[]")));
 test('backup valida reservas e códigos de embalagem antes de restaurar',()=>{const fn=extractFunction('validateImportedBackup');const c={Number,String,Array,Set,Math,JSON};vm.createContext(c);vm.runInContext(fn+';this.f=validateImportedBackup;',c);assert.strictEqual(c.f({products:[],moves:[],cuts:[],reservations:[{oc:'',productId:'p',qty:1,status:'ativa'}]}).ok,false);assert.strictEqual(c.f({products:[],moves:[],cuts:[],packages:[{code:'X',productId:'p',initial:2,remaining:-1,unit:'rolo'}]}).ok,false);});
-test('backup restaura reservas e embalagens sem descartá-las',()=>assert(html.includes("reservations:Array.isArray(data.reservations)?data.reservations:[],packages:Array.isArray(data.packages)?data.packages:[]")));
+test('backup restaura reservas e embalagens sem descartá-las',()=>assert(html.includes("reservations:Array.isArray(data.reservations)?data.reservations:[],packages:Array.isArray(data.packages)?data.packages:[],workshopStock:Array.isArray(data.workshopStock)?data.workshopStock:[]")));
 test('saídas comuns respeitam o saldo livre após reservas',()=>assert(html.includes("qty>availableQty(p)+1e-9")));
 test('migração protege reservas e embalagens locais antes de sincronizar',()=>assert(html.includes("(localBefore.reservations||[]).length||(localBefore.packages||[]).length")));
 
@@ -54,6 +54,38 @@ test('envio parcial não exige igualdade com o cálculo',()=>assert(!html.includ
 test('saída parcial continua bloqueando quantidade acima do saldo livre',()=>assert(html.includes('if(totalQty>available+1e-9)')));
 test('pendência e sobra são registradas na descrição da movimentação',()=>assert(html.includes('Envio parcial; faltam')&&html.includes('Envio extra de')));
 test('painel inicial inclui gráfico de atividade de entradas e saídas',()=>assert(html.includes('id="movementActivityChart"')&&html.includes('function renderMovementActivityChart()')));
-test('gráfico de atividade conta registros sem somar unidades incompatíveis',()=>assert(html.includes('d[m.type]++')&&html.includes('não quantidade de material')));
+test('gráfico de atividade conta registros sem somar unidades incompatíveis',()=>assert(html.includes('d[m.type]++')&&html.includes('conta registros, não quantidades de unidades incompatíveis')));
 
 console.log(`RESULT: ${pass} PASS, ${fail} FAIL`);if(fail)process.exitCode=1;
+
+test('cordão calcula 1 por peça e pacote de 1.000',()=>assert(html.includes("if(pn.includes('cordao') && base==='unidade')")&&html.includes("if(pu==='pacote') return 1000")&&html.includes('cordões necessários')));
+test('elástico é baixado por rolos/pacotes, com sobras do pacote aberto',()=>assert(html.includes('const rolls=Math.ceil(amount/25)')&&html.includes('return rolls/15')&&html.includes('sobrando ${15-loose} rolo(s)')));
+test('refletivo considera 20 rolos por caixa e 50 m por rolo',()=>assert(html.includes("if(pu==='caixa' || pu==='pacote') return 1000")&&html.includes('const rolls=Math.ceil(meters/50), boxes=Math.floor(rolls/20)')&&html.includes('sobrando ${20-loose} rolo(s)')));
+test('botão e courinho ficam associados a Acabamento nos produtos iniciais',()=>assert(html.includes("(n.includes('botao')||n.includes('courinho'))?'Acabamento':'Costura'")));
+
+
+test('cálculo individual pode ser apagado com confirmação e preserva movimentos',()=>assert(html.includes('data-delete-cut') && html.includes('state.cuts=state.cuts.filter(x=>x.id!==deleteCut)') && html.includes('Não apaga movimentações, saídas, reservas ou altera o saldo do estoque')));
+test('apagar todos os cálculos tem confirmação e preserva estoque',()=>assert(html.includes('id=\"deleteAllCuts\"') && html.includes('state.cuts=[]') && html.includes('Não apaga movimentações, saídas para oficina, reservas, produtos ou saldos de estoque')));
+console.log(`RESULT: ${pass} PASS, ${fail} FAIL`);
+process.exitCode=fail?1:0;
+
+test('dashboard possui filtro de período de 7, 30 e 90 dias',()=>assert(html.includes('id="homeChartPeriod"')&&html.includes('value="90">90 dias</option>')));
+test('dashboard compara saldos de produtos sem misturar unidades',()=>assert(html.includes('function renderProductStockChart()')&&html.includes('Mostrando os menores saldos por unidade')));
+test('histórico de movimentações tem busca, tipo e período',()=>{for(const id of ['moveSearch','moveFilterType','moveFilterPeriod'])assert(html.includes(`id="${id}"`));});
+test('controle de oficina permite consumo, devolução e saldo conhecido',()=>{for(const value of ['consumo','devolucao','saldo'])assert(html.includes(`value="${value}"`));assert(html.includes('function workshopBalance(')&&html.includes('function setWorkshopBalance('));});
+test('envios novos aumentam saldo registrado da oficina',()=>assert(html.includes("setWorkshopBalance(workshop,p.id,wb+line.qty")));
+test('consumo da oficina não altera estoque central',()=>assert(html.includes("action==='consumo'")));
+test('devolução da oficina gera entrada no estoque central',()=>assert(html.includes('Devolução da oficina.')&&html.includes("type:'entrada'")));
+test('saldo da oficina é validado na restauração do backup',()=>assert(html.includes("data.workshopStock||[]")&&html.includes('Saldo de oficina')));
+test('relatórios exibem estoque atual e exportação CSV',()=>assert(html.includes('id="reportStockTable"')&&html.includes('id="reportStockCsv"')));
+test('saldos da oficina são exportáveis em CSV',()=>assert(html.includes('id="exportWorkshopCsv"')&&html.includes("downloadCsv('saldos-oficina.csv'")));
+test('backup de estado inclui a nova coleção workshopStock',()=>assert(html.includes("workshopStock:Array.isArray(saved.workshopStock)?saved.workshopStock:[]")&&html.includes("workshopStock:local.workshopStock||[]")));
+
+const workshopCtx={Number,String,Array,Set,Math,JSON,Date,uid:()=>"test-id",norm:s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(),state:{products:[{id:'p1',name:'Cordão',unit:'pacote'}],workshopStock:[]},productLabel:p=>p.name+' ('+p.unit+')'};
+vm.createContext(workshopCtx);vm.runInContext(extractFunction('ensureCollections')+';'+extractFunction('workshopKey')+';'+extractFunction('setWorkshopBalance')+';'+extractFunction('workshopBalance')+';this.setWorkshopBalance=setWorkshopBalance;this.workshopBalance=workshopBalance;',workshopCtx);
+test('saldo da oficina inicia no zero e aceita saldo conferido',()=>{assert.strictEqual(workshopCtx.workshopBalance('Oficina A','p1'),0);workshopCtx.setWorkshopBalance('Oficina A','p1',3,{action:'saldo inicial',before:0,delta:3});assert.strictEqual(workshopCtx.workshopBalance('oficina a','p1'),3);});
+test('histórico da oficina registra unidade e antes/depois',()=>{const h=workshopCtx.state.workshopStock[0].history[0];assert.strictEqual(h.unit,'pacote');assert.strictEqual(h.before,0);assert.strictEqual(h.after,3);});
+test('backup rejeita saldo negativo na oficina',()=>{const c={Number,String,Array,Set,Math,JSON};vm.createContext(c);vm.runInContext(extractFunction('validateImportedBackup')+';this.f=validateImportedBackup;',c);assert.strictEqual(c.f({products:[{id:'p1',name:'Cordão',qty:5}],moves:[],cuts:[],workshopStock:[{workshop:'A',productId:'p1',qty:-1,unit:'pacote'}]}).ok,false);});
+test('painel mostra histórico de consumo, envio e devolução',()=>assert(html.includes('id="workshopLedgerHistory"')&&html.includes('Histórico de consumo, envio e devolução')));
+test("servidor aceita ajuste físico",()=>assert(fs.readFileSync("server.js","utf8").includes("['entrada','saida','ajuste'].includes(m.type)")));
+console.log(`FINAL RESULT: ${pass} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;

@@ -39,3 +39,5 @@ IMPORTANTE: a autenticação continua desativada por escolha anterior. Não expo
 MELHORIA 1.3.2: previsão de reposição agora permite configurar prazo de reposição e margem de segurança, calcula quantidade sugerida na unidade já cadastrada e ignora movimentações futuras ou com data inválida. Nenhuma conversão ou regra de consumo foi alterada.
 
 RELATÓRIO: consulte RELATORIO_EVOLUCAO_v1_3_2.md para as melhorias e limitações desta versão.
+
+VERSAO 1.3.5: A tela Cálculos salvos inclui apagar individualmente e apagar todos os cálculos, com confirmação. Essas ações não apagam movimentações nem alteram saldos. Faça backup antes de atualizar.

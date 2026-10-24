@@ -1,0 +1,10 @@
+Estoque de Aviamentos v1.4.0
+
+Verificações locais:
+- Sintaxe server.js: PASS
+- Sintaxe JavaScript inline: PASS
+- Testes automatizados: 68 PASS, 0 FAIL
+- Teste real em navegador: NÃO EXECUTADO
+- Deploy Render/PostgreSQL real: NÃO EXECUTADO
+
+As verificações locais não garantem ausência absoluta de bugs. Faça backup dos dados reais antes de atualizar.
