@@ -1,0 +1,18 @@
+PASS aceita backup válido com campos opcionais ausentes
+PASS rejeita JSON que não seja objeto
+PASS rejeita listas principais ausentes
+PASS rejeita registro nulo em lista
+PASS rejeita produto sem nome
+PASS rejeita saldo negativo ou não numérico
+PASS rejeita conteúdo de embalagem inválido
+PASS rejeita códigos duplicados no backup
+PASS rejeita quantidade inválida em movimentação
+PASS código duplicado também é bloqueado no cadastro
+PASS conferência usa tolerância numérica para diferenças de ponto flutuante
+PASS backup exportado identifica a versão 1.2.2
+PASS restauração pede confirmação com quantidades e valida os dados antes
+PASS não altera regras de consumo já cadastradas
+PASS bloqueia número de corte duplicado ao salvar cálculo
+PASS exige número do corte e cálculo salvo antes da saída vinculada
+PASS saída em lote tem guarda contra clique duplo
+RESULT: 17 PASS, 0 FAIL

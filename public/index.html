@@ -73,14 +73,46 @@ select { color:#172033 !important; background:#f8fbff !important; }
 .aviamento-detail{margin:0;padding:12px 15px;color:#475569;font-size:13px;line-height:1.5}
 @media(max-width:520px){.aviamento-result-top{flex-direction:column;gap:5px}.aviamento-amount{text-align:left}.label-size-head,.label-size-row{grid-template-columns:.8fr 1.2fr .7fr;font-size:12px;padding-left:2px;padding-right:2px}.label-total{align-items:flex-start;flex-direction:column;gap:4px}}
 
+
+/* MEGA ATUALIZAÇÃO 1.2 — tema persistente claro/escuro */
+:root{color-scheme:dark}
+html[data-theme="light"]{color-scheme:light;--navy:#172554;--blue:#2563eb;--blue2:#dbeafe;--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#64748b;--line:#e2e8f0;--green:#15803d;--red:#b91c1c;--amber:#b45309;--shadow:0 8px 24px #0f172a0a}
+html[data-theme="light"] body{background:radial-gradient(ellipse at 8% 0%,#dbeafe88,transparent 36%),radial-gradient(ellipse at 95% 15%,#ede9fe88,transparent 30%),var(--bg);color:var(--text)}
+html[data-theme="light"] .topbar{background:linear-gradient(115deg,#172554,#1d4ed8 58%,#4338ca);border-bottom-color:#c7d2fe}
+html[data-theme="light"] .sidebar{background:#ffffffed;border-color:#dbe4f0;box-shadow:0 8px 24px #0f172a0a}
+html[data-theme="light"] .navbtn{color:#475569}
+html[data-theme="light"] .navbtn:hover{background:#eff6ff;color:#1d4ed8}
+html[data-theme="light"] .navbtn.active{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe;box-shadow:inset 3px 0 #2563eb,0 4px 12px #1d4ed80d}
+html[data-theme="light"] .card{background:#ffffff;border-color:#e2e8f0;box-shadow:0 8px 24px #0f172a0a}
+html[data-theme="light"] label{color:#475569}
+html[data-theme="light"] input,html[data-theme="light"] select,html[data-theme="light"] textarea{background:#fff;color:#172033;border-color:#cbd5e1}
+html[data-theme="light"] table{background:#fff}
+html[data-theme="light"] th{background:#f8fafc;color:#475569}
+html[data-theme="light"] td{color:#172033}
+html[data-theme="light"] .secondary{background:#eaf0f8;color:#172554;border-color:#dbe4f0}
+html[data-theme="light"] .danger{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+html[data-theme="light"] .resultbox{background:#f8fafc;border-color:#e2e8f0}
+html[data-theme="light"] .chart-track{background:#e8edf5}
+html[data-theme="light"] .notice{background:#eff6ff;color:#1e40af}
+html[data-theme="light"] .warning{background:#fff7ed;color:#9a3412}
+html[data-theme="light"] .success{background:#f0fdf4;color:#166534}
+html[data-theme="light"] .modal{background:#fff;color:#172033}
+html[data-theme="light"] .fileinput{background:#f8fafc}
+html[data-theme="light"] .top-actions button{background:#ffffff20;color:#fff;border-color:#ffffff40}
+html[data-theme="light"] .topbar .brand p{color:#dbeafe}
+html[data-theme="light"] .aviamento-detail{color:#475569}
+html[data-theme="light"] .sizebox{background:#fff}
+html[data-theme="light"] .productrow small{color:#64748b}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
 </style>
 </head>
 <body>
-<div id="authOverlay" class="modalback" style="z-index:100;display:none"><div class="modal" style="max-width:420px"><h2>Entrar no Estoque de Aviamentos</h2><p class="muted">Acesso administrativo protegido.</p><form id="authForm"><div class="field"><label for="authPassword">Senha de administrador</label><input id="authPassword" type="password" autocomplete="current-password" required></div><div id="authError" class="notice warning hidden" style="margin-top:10px"></div><div class="actions"><button class="primary" type="submit">Entrar</button></div></form></div></div>
+
 <div class="app">
 <header class="topbar">
  <div class="brand"><div class="logo">📦</div><div><h1>ESTOQUE DE AVIAMENTOS</h1><p>Controle de materiais, cortes e oficinas</p></div></div>
- <div class="top-actions"><button id="voiceTop" title="Cadastrar por voz">🎙️ Voz</button><button id="photoTop">📷 Ler lista</button><button id="exportBtn">⬇ Exportar backup</button><button id="importBtn" type="button">↥ Restaurar backup</button><input id="backupFile" type="file" accept="application/json,.json" hidden></div>
+ <div class="top-actions"><button id="themeToggle" type="button" aria-label="Alternar tema">☀️ Tema claro</button><button id="voiceTop" title="Cadastrar por voz">🎙️ Voz</button><button id="photoTop">📷 Ler lista</button><button id="exportBtn">⬇ Exportar backup</button><button id="importBtn" type="button">↥ Restaurar backup</button><input id="backupFile" type="file" accept="application/json,.json" hidden></div>
 </header>
 <div class="layout">
  <nav class="sidebar" aria-label="Navegação">
@@ -357,7 +389,8 @@ function renderWorkshops(){
    const sent=related.reduce((sum,m)=>sum+Number(m.baseQty??m.qty??0),0);
    const missing=Math.max(0,planned-sent);
    const extra=Math.max(0,sent-planned);
-   const status=sent===0?'NÃO ENVIADO':sent<planned?'FALTA '+fmt(missing)+' '+item.unit:sent===planned?'CONFERIDO':'SOBRA '+fmt(extra)+' '+item.unit;
+   const tolerance=Math.max(0.001,Math.abs(planned)*1e-9);
+   const status=sent<=tolerance?'NÃO ENVIADO':missing>tolerance?'FALTA '+fmt(missing)+' '+item.unit:extra>tolerance?'SOBRA '+fmt(extra)+' '+item.unit:'CONFERIDO';
    reconcile.push([dateFmt(c.date),esc(c.number||'—'),esc(c.workshop||'—'),esc(item.name),fmt(planned)+' '+esc(item.unit),fmt(sent)+' '+esc(item.unit),`<strong>${fmt(missing)} ${esc(item.unit)}</strong>`,`<strong>${fmt(extra)} ${esc(item.unit)}</strong>`,status]);
   });
  });
@@ -469,7 +502,7 @@ function renderCalc(c){
 }
 $('cutForm').addEventListener('submit',e=>{e.preventDefault();currentCalc=calculateCut();if(currentCalc)renderCalc(currentCalc);});
 $('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0);$('cutPairs').value='';$('cutNumber').value='';$('cutWorkshop').value='';$('cutNotes').value='';currentCalc=null;$('cutResults').classList.add('hidden');});
-$('saveCut').addEventListener('click',()=>{if(!currentCalc)return;if(state.cuts.some(c=>c.id===currentCalc.id)){toast('Este cálculo já foi salvo.');return;}state.cuts.push(currentCalc);persist();renderAll();toast('Cálculo salvo.');});
+$('saveCut').addEventListener('click',()=>{if(!currentCalc)return;if(state.cuts.some(c=>c.id===currentCalc.id)){toast('Este cálculo já foi salvo.');return;}const number=String(currentCalc.number||'').trim();if(number&&state.cuts.some(c=>String(c.number||'').trim()===number)){toast('Já existe um cálculo salvo com este número de corte. Use outro número ou consulte o cálculo existente.');return;}state.cuts.push(currentCalc);persist();renderAll();toast('Cálculo salvo.');});
 function stockUnitFactor(product, calculatedUnit){
  const pu=norm(product.unit||'unidade'), cu=norm(calculatedUnit||'unidades');
  const pn=norm(product.name||'');
@@ -576,8 +609,13 @@ function openBulkIssue(){
 }
 $('cutToIssue').addEventListener('click',openBulkIssue);
 $('cancelBulkIssue').addEventListener('click',()=>$('bulkIssuePanel').classList.add('hidden'));
+let bulkIssueInProgress=false;
 $('confirmBulkIssue').addEventListener('click',()=>{
+ if(bulkIssueInProgress)return;
  if(!currentCalc)return;
+ const cutNumber=String(currentCalc.number||'').trim();
+ if(!cutNumber)return toast('Informe o número do corte antes de registrar uma saída vinculada.');
+ if(!state.cuts.some(c=>c.id===currentCalc.id))return toast('Salve o cálculo antes de registrar a saída. Isso permite conferir calculado × enviado no histórico.');
  const workshop=$('bulkWorkshop').value.trim();if(!workshop)return toast('Informe o nome da oficina.');
  const lines=(currentCalc.items||[]).map((item,index)=>({item,index,productId:$(`[data-bulk-product="${index}"]`)?.value||'',qty:Number($(`[data-bulk-qty="${index}"]`)?.value)}));
  if(!lines.length)return toast('Este corte não possui aviamentos para enviar.');
@@ -594,13 +632,15 @@ $('confirmBulkIssue').addEventListener('click',()=>{
   totalsByProduct.set(p.id,(totalsByProduct.get(p.id)||0)+line.qty);
  }
  for(const [productId,totalQty] of totalsByProduct){const p=state.products.find(x=>x.id===productId);if(totalQty>Number(p.qty)+1e-9)return toast(`Saldo insuficiente para ${p.name}. Total solicitado: ${fmt(totalQty)} ${p.unit}; disponível: ${fmt(p.qty)} ${p.unit}.`);}
+ if(bulkIssueInProgress)return;
+ bulkIssueInProgress=true;
  const now=new Date().toISOString();
  for(const line of lines){
   const p=state.products.find(x=>x.id===line.productId),before=Number(p.qty)||0;
   p.qty=Number((before-line.qty).toFixed(3));
   state.moves.push({id:uid(),date:now,type:'saida',productId:p.id,productName:productLabel(p),qty:line.qty,unit:p.unit,baseQty:line.baseQty,baseUnit:line.item.unit,workshop,cut:currentCalc.number||'',referenceId:currentCalc.referenceId||'',referenceName:currentCalc.referenceName||'',notes:'Envio do corte completo para oficina',balanceBefore:before,balanceAfter:Number(p.qty),actor:'Local user'});
  }
- persist();renderAll();$('bulkIssuePanel').classList.add('hidden');toast(`Saída registrada: ${lines.length} item(ns) enviados para ${workshop}.`);
+ persist();renderAll();$('bulkIssuePanel').classList.add('hidden');bulkIssueInProgress=false;toast(`Saída registrada: ${lines.length} item(ns) enviados para ${workshop}.`);
 });
 $('moveForm').addEventListener('submit',e=>{
  e.preventDefault();const p=state.products.find(x=>x.id===$('moveProduct').value);if(!p)return toast('Selecione um produto.');
@@ -695,18 +735,36 @@ $('interpretVoice').addEventListener('click',()=>{
  toast('Não consegui interpretar o comando. Tente “500 unidades de zíper preto”.');
 });
 $('exportBtn').addEventListener('click',()=>{
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.1',...state},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.2.2',...state},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='backup-estoque-aviamentos.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  toast('Backup exportado. Guarde o arquivo em local seguro.');
 });
 $('importBtn').addEventListener('click',()=>{ $('backupFile').value=''; $('backupFile').click(); });
+function validateImportedBackup(data){
+ if(!data||typeof data!=='object'||Array.isArray(data))return {ok:false,message:'O arquivo precisa conter um objeto JSON.'};
+ for(const key of ['products','moves','cuts'])if(!Array.isArray(data[key]))return {ok:false,message:`O backup não contém uma lista válida de ${key}.`};
+ if(data.audits!==undefined&&!Array.isArray(data.audits))return {ok:false,message:'A lista de conferências do backup está inválida.'};
+ const objectLists=['products','moves','cuts','audits'];
+ for(const key of objectLists){if(!Array.isArray(data[key]))continue;for(let i=0;i<data[key].length;i++){const item=data[key][i];if(!item||typeof item!=='object'||Array.isArray(item))return {ok:false,message:`Registro ${i+1} da lista ${key} está inválido.`};}}
+ const codes=new Set();
+ for(let i=0;i<data.products.length;i++){
+  const p=data.products[i];
+  if(typeof p.name!=='string'||!p.name.trim())return {ok:false,message:`Produto ${i+1} está sem nome.`};
+  if(p.qty!==undefined&&(!Number.isFinite(Number(p.qty))||Number(p.qty)<0))return {ok:false,message:`Saldo inválido no produto “${p.name}”.`};
+  if(p.packSize!==undefined&&p.packSize!==null&&p.packSize!==''&&(!Number.isFinite(Number(p.packSize))||Number(p.packSize)<0))return {ok:false,message:`Conteúdo de embalagem inválido no produto “${p.name}”.`};
+  const code=String(p.code||'').trim();if(code){if(codes.has(code))return {ok:false,message:`O código “${code}” aparece em mais de um produto no backup.`};codes.add(code);}
+ }
+ for(let i=0;i<data.moves.length;i++){const m=data.moves[i];if(m.qty!==undefined&&(!Number.isFinite(Number(m.qty))||Number(m.qty)<0))return {ok:false,message:`Quantidade inválida na movimentação ${i+1}.`};}
+ return {ok:true};
+}
 $('backupFile').addEventListener('change',async e=>{
  const file=e.target.files&&e.target.files[0]; if(!file)return;
  try{
   if(file.size>10*1024*1024) throw new Error('O arquivo excede o limite de 10 MB.');
   const data=JSON.parse(await file.text());
-  if(!data||!Array.isArray(data.products)||!Array.isArray(data.moves)||!Array.isArray(data.cuts)) throw new Error('Este arquivo não parece ser um backup válido do Estoque de Aviamentos.');
-  const ok=confirm('ATENÇÃO: restaurar este backup substituirá os dados atuais deste navegador por produtos, movimentações e cortes do arquivo. Exporte um backup atual antes de continuar. Deseja prosseguir?');
+  const validation=validateImportedBackup(data);
+  if(!validation.ok) throw new Error(validation.message);
+  const ok=confirm(`ATENÇÃO: restaurar este backup substituirá os dados atuais deste navegador por ${data.products.length} produto(s), ${data.moves.length} movimentação(ões) e ${data.cuts.length} corte(s). Exporte um backup atual antes de continuar. Deseja prosseguir?`);
   if(!ok)return;
   const previous=localStorage.getItem(STORAGE_KEY);
   try{state={products:data.products,moves:data.moves,cuts:data.cuts,audits:Array.isArray(data.audits)?data.audits:[]};persist();renderProductSelects();renderAll();toast('Backup restaurado com sucesso. Confira os saldos e registros.');}
@@ -740,6 +798,13 @@ async function init(){
   remoteRevision=Number(remote.revision)||0;
   if(remote && remote.empty===false && remote.state && typeof remote.state==='object'){
    const saved=remote.state;
+   const localBefore=loadState();
+   const localSnapshot=JSON.stringify(localBefore);
+   const remoteSnapshot=JSON.stringify({products:Array.isArray(saved.products)?saved.products:[],moves:Array.isArray(saved.moves)?saved.moves:[],cuts:Array.isArray(saved.cuts)?saved.cuts:[],audits:Array.isArray(saved.audits)?saved.audits:[]});
+   if((localBefore.products.length||localBefore.moves.length||localBefore.cuts.length||localBefore.audits.length)&&localSnapshot!==remoteSnapshot){
+    const backupKey=STORAGE_KEY+'_backup_'+new Date().toISOString().replace(/[:.]/g,'-');
+    try{localStorage.setItem(backupKey,localSnapshot);console.warn('Dados locais diferentes do servidor foram preservados em '+backupKey);if(status)status.value='Conectado — backup local preservado';}catch(e){throw new Error('Dados locais diferentes do servidor; não foi possível criar backup local. Sincronização interrompida para proteger os dados.');}
+   }
    state={products:Array.isArray(saved.products)?saved.products:[],moves:Array.isArray(saved.moves)?saved.moves:[],cuts:Array.isArray(saved.cuts)?saved.cuts:[],audits:Array.isArray(saved.audits)?saved.audits:[]};
    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){console.warn('Cache local indisponível:',e);}
    remoteReady=true;
@@ -749,8 +814,9 @@ async function init(){
    const local=loadState();
    state={products:local.products,moves:local.moves,cuts:local.cuts,audits:local.audits};
    const snapshot=JSON.stringify(state);
-   const saveResponse=await fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json'},body:snapshot});
+   const saveResponse=await fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json','If-Match':String(remoteRevision)},body:snapshot});
    if(!saveResponse.ok)throw new Error('Não foi possível migrar os dados locais (HTTP '+saveResponse.status+').');
+   const migrationResult=await saveResponse.json();remoteRevision=Number(migrationResult.revision)||1;
    remoteReady=true;
    if(status)status.value='Conectado — dados locais migrados';
   }
@@ -762,9 +828,12 @@ async function init(){
  }
  renderProductSelects();renderAll();refreshInvProducts();renderAuditHistory();renderReports();
 }
-async function bootWithAuth(){const overlay=$('authOverlay');try{const r=await fetch('/api/auth/me');const auth=await r.json();if(!auth.loginConfigured){overlay.style.display='grid';$('authError').textContent='O servidor precisa de STOCK_ADMIN_PASSWORD e SESSION_SECRET configurados no Render.';$('authError').classList.remove('hidden');return;}if(auth.authenticated){overlay.style.display='none';await init();return;}overlay.style.display='grid';}catch(e){overlay.style.display='none';await init();}}
-$('authForm')?.addEventListener('submit',async e=>{e.preventDefault();const err=$('authError');err.classList.add('hidden');try{const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('authPassword').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Falha no login.');$('authPassword').value='';$('authOverlay').style.display='none';await init();}catch(e){err.textContent=e.message;err.classList.remove('hidden');}});
-bootWithAuth();
+// Acesso sem senha temporariamente, conforme solicitado.
+const THEME_KEY='estoque_aviamentos_theme_v1';
+function applyTheme(theme){const normalized=theme==='light'?'light':'dark';document.documentElement.setAttribute('data-theme',normalized);const b=$('themeToggle');if(b){b.textContent=normalized==='light'?'🌙 Tema escuro':'☀️ Tema claro';b.setAttribute('aria-pressed',String(normalized==='light'));}try{localStorage.setItem(THEME_KEY,normalized);}catch(e){console.warn('Preferência de tema não pôde ser salva:',e);}}
+$('themeToggle')?.addEventListener('click',()=>applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light'));
+let savedTheme='dark';try{savedTheme=localStorage.getItem(THEME_KEY)||'dark';}catch(e){}applyTheme(savedTheme);
+init();
 })();
 </script>
 </body>
