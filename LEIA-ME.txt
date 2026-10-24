@@ -1,31 +1,41 @@
-# Estoque de Aviamentos — pacote para Render + PostgreSQL
+ESTOQUE DE AVIAMENTOS — VERSÃO 1.3.2
 
-## Estrutura
-- `server.js`: API Express e integração PostgreSQL.
-- `package.json`: dependências e comando `npm start`.
-- `public/index.html`: interface atual com sincronização via `/api/state`.
+PACOTE
+- index.html: interface e funções do sistema
+- server.js: backend da versão 1.2.2, mantido sem login conforme pedido temporário
+- package.json: dependências e comando de teste
+- unit_test.js: testes automatizados
+- RELATORIO_EVOLUCAO_v1_3_0.md: resumo, testes e limitações
+- backup_before_v1_3/: cópia dos arquivos de código da versão 1.2.2
 
-## Configuração no Render
-No Web Service:
-- Build Command: `npm install`
-- Start Command: `npm start`
-- Root Directory: deixe vazio se `server.js` e `package.json` estiverem na raiz do repositório.
+ANTES DE SUBSTITUIR ARQUIVOS
+1. Abra o sistema atual e use Exportar backup.
+2. Guarde o JSON exportado fora do celular.
+3. Faça uma cópia dos arquivos atuais no GitHub.
+4. Substitua os arquivos com os correspondentes deste pacote.
+5. Rode npm test, ou node unit_test.js, no ambiente Node.
+6. Publique e teste primeiro em ambiente de teste; verifique /api/health e a leitura/salvamento antes de usar dados reais.
 
-Em Environment, configure `DATABASE_URL` usando a **Internal Database URL** do PostgreSQL do Render, se o serviço e o banco estiverem na mesma região. Não publique nem compartilhe essa URL: ela contém credenciais.
+NOVO NESTA VERSÃO
+- Reservas virtuais por OC.
+- Rastreio independente de rolos/caixas/pacotes com histórico.
+- Previsão simples baseada nas saídas registradas.
+- Interpretação de texto OCR para sugerir dados de ficha de corte.
+- Assistente local por regras para consultas básicas.
+- Integração das reservas na disponibilidade e no envio de corte pela mesma OC.
 
-## Instalação pelo GitHub no celular
-1. Baixe e extraia o ZIP.
-2. No repositório, mantenha `server.js` e `package.json` na raiz.
-3. Crie a pasta `public` e coloque `index.html` dentro dela. Se o seu projeto atual já usa `index.html` na raiz, o servidor também tenta servir essa versão como fallback.
-4. Faça commit dos arquivos e aguarde o deploy do Render.
+IMPORTANTE
+- Reservar não baixa o saldo físico.
+- O rastreio de embalagens não altera o saldo geral e não converte unidades.
+- A leitura OCR só sugere campos; revise tudo antes de aplicar.
+- O assistente não é IA generativa conectada a um modelo externo.
+- A senha está desativada temporariamente. Não exponha o servidor publicamente com dados reais.
+- Não há confirmação de teste real no Render/PostgreSQL nesta entrega.
 
-## Testes após o deploy
-- `/api/health`: deve retornar `ok: true` e `databaseConfigured: true`.
-- `/api/db-status`: deve retornar `connected: true`.
-- `/api/state`: na primeira execução, deve retornar `{"empty":true,"state":null}`; após salvar dados, retorna `empty:false` e o estado.
 
-## Observações importantes
-- A API usa uma tabela nova chamada `estoque_app_state_store` para evitar o conflito de coluna `state` na tabela antiga. Ela não apaga nem altera tabelas antigas.
-- O `index.html` guarda cache local e tenta sincronizar o estado com a API quando o servidor estiver conectado.
-- Faça backup do repositório antes de substituir arquivos.
-- Não envie comandos de exclusão nem apague o banco.
+CORREÇÕES 1.3.1 e 1.3.2: saídas por foto/voz verificam o saldo livre após reservas e somam itens repetidos antes de confirmar; validação de backups reforçada para referências de produtos; validação de estado reforçada no servidor.
+IMPORTANTE: a autenticação continua desativada por escolha anterior. Não exponha a API publicamente com dados reais até adicionar autenticação.
+
+MELHORIA 1.3.2: previsão de reposição agora permite configurar prazo de reposição e margem de segurança, calcula quantidade sugerida na unidade já cadastrada e ignora movimentações futuras ou com data inválida. Nenhuma conversão ou regra de consumo foi alterada.
+
+RELATÓRIO: consulte RELATORIO_EVOLUCAO_v1_3_2.md para as melhorias e limitações desta versão.
