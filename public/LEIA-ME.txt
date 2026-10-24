@@ -1,0 +1,41 @@
+ESTOQUE DE AVIAMENTOS — VERSÃO 1.3.2
+
+PACOTE
+- index.html: interface e funções do sistema
+- server.js: backend da versão 1.2.2, mantido sem login conforme pedido temporário
+- package.json: dependências e comando de teste
+- unit_test.js: testes automatizados
+- RELATORIO_EVOLUCAO_v1_3_0.md: resumo, testes e limitações
+- backup_before_v1_3/: cópia dos arquivos de código da versão 1.2.2
+
+ANTES DE SUBSTITUIR ARQUIVOS
+1. Abra o sistema atual e use Exportar backup.
+2. Guarde o JSON exportado fora do celular.
+3. Faça uma cópia dos arquivos atuais no GitHub.
+4. Substitua os arquivos com os correspondentes deste pacote.
+5. Rode npm test, ou node unit_test.js, no ambiente Node.
+6. Publique e teste primeiro em ambiente de teste; verifique /api/health e a leitura/salvamento antes de usar dados reais.
+
+NOVO NESTA VERSÃO
+- Reservas virtuais por OC.
+- Rastreio independente de rolos/caixas/pacotes com histórico.
+- Previsão simples baseada nas saídas registradas.
+- Interpretação de texto OCR para sugerir dados de ficha de corte.
+- Assistente local por regras para consultas básicas.
+- Integração das reservas na disponibilidade e no envio de corte pela mesma OC.
+
+IMPORTANTE
+- Reservar não baixa o saldo físico.
+- O rastreio de embalagens não altera o saldo geral e não converte unidades.
+- A leitura OCR só sugere campos; revise tudo antes de aplicar.
+- O assistente não é IA generativa conectada a um modelo externo.
+- A senha está desativada temporariamente. Não exponha o servidor publicamente com dados reais.
+- Não há confirmação de teste real no Render/PostgreSQL nesta entrega.
+
+
+CORREÇÕES 1.3.1 e 1.3.2: saídas por foto/voz verificam o saldo livre após reservas e somam itens repetidos antes de confirmar; validação de backups reforçada para referências de produtos; validação de estado reforçada no servidor.
+IMPORTANTE: a autenticação continua desativada por escolha anterior. Não exponha a API publicamente com dados reais até adicionar autenticação.
+
+MELHORIA 1.3.2: previsão de reposição agora permite configurar prazo de reposição e margem de segurança, calcula quantidade sugerida na unidade já cadastrada e ignora movimentações futuras ou com data inválida. Nenhuma conversão ou regra de consumo foi alterada.
+
+RELATÓRIO: consulte RELATORIO_EVOLUCAO_v1_3_2.md para as melhorias e limitações desta versão.
