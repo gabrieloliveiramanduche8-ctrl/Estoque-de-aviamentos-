@@ -1,0 +1,43 @@
+AVISO: esta versão está temporariamente SEM SENHA, conforme solicitado. Se publicada na internet, qualquer pessoa que acessar poderá consultar/alterar o estoque. Use apenas em ambiente controlado e reative a autenticação antes de uso público.
+
+ESTOQUE DE AVIAMENTOS — MEGA ATUALIZAÇÃO 1.2.0
+
+O QUE ESTÁ INCLUÍDO
+- index.html: interface existente, com tema claro/escuro persistente.
+- server.js: login fail-closed, limite básico de tentativas, cabeçalhos de segurança e exposição estática restrita à pasta public.
+- Salvamento inicial: usa If-Match/revisão para evitar corrida ao inicializar o estado.
+- Preservação local: antes de substituir cache local diferente do estado remoto, grava cópia em uma chave localStorage separada com timestamp.
+- package.json e unit_test.js.
+- backup_before_mega_update/: cópia da versão 1.1.0 original, antes das alterações desta rodada.
+- RELATORIO_MEGA_ATUALIZACAO.md: resultados e limitações dos testes.
+
+REGRAS DE NEGÓCIO PRESERVADAS
+- Consumos informados: elástico 0,8 m/peça; refletivo 1 m/peça; cós 1,3 m/peça; etiqueta tamanho 0,35 g/peça; composição 0,4 g/peça; botão ferro 2,1 g/peça; coquinho 0,78 g/peça.
+- Elástico: rolo 25 m, pacote 15 rolos/375 m.
+- Refletivo: rolo 50 m, caixa 20 rolos/1000 m.
+- Cós: rolo 50 m; sem conversão inventada para caixa/pacote.
+- Cordão: consumo por peça permanece manual porque a regra não foi informada.
+- Zíperes separados por cor.
+- Referências e grade já existentes foram mantidas.
+
+ANTES DE PUBLICAR
+1. Exporte o backup pelo botão da aplicação e guarde-o fora do celular.
+2. Faça cópia dos arquivos atuais do GitHub.
+3. No Render, configure STOCK_ADMIN_PASSWORD (senha forte), SESSION_SECRET (segredo aleatório de pelo menos 32 bytes), DATABASE_URL e NODE_ENV=production.
+4. Faça deploy e teste /api/health, login, /api/db-status, leitura/salvamento e conflito entre duas sessões.
+5. Não coloque senha ou SESSION_SECRET no GitHub.
+
+LIMITAÇÕES CONHECIDAS
+- Esta entrega não implementa rastreamento por ID de cada pacote físico aberto; saldo por unidade e conversões conhecidas permanecem o método atual.
+- A autenticação é um único administrador por variável de ambiente; não é gestão multiusuário/por função.
+- A instalação das dependências excedeu o limite de tempo deste ambiente; integração real Express/PostgreSQL/Render não foi executada aqui.
+- O navegador automatizado foi bloqueado pelas políticas do ambiente ao abrir URLs locais/arquivos. Portanto não há confirmação de teste visual interativo real nesta execução.
+- A cópia local criada automaticamente antes de uma substituição remota fica em localStorage sob uma chave com sufixo _backup_timestamp. Exporte o backup principal antes de sincronizar entre dispositivos.
+
+
+ATUALIZAÇÃO DE AUDITORIA 1.2.1
+- Importação de backup valida a estrutura e rejeita saldos/quantidades inválidas e códigos duplicados antes de substituir dados.
+- Conferência de corte usa tolerância numérica para reduzir falsos alertas por decimais.
+- Backup exportado identifica versão 1.2.1.
+- Relatório detalhado: RELATORIO_AUDITORIA_MELHORIAS_v1_2_1.md.
+- A senha continua desativada conforme solicitado; não exponha o servidor publicamente com dados reais.

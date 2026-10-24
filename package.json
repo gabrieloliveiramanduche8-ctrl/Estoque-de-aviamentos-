@@ -1,11 +1,12 @@
 {
   "name": "estoque-de-aviamentos",
-  "version": "1.1.0",
+  "version": "1.2.2",
   "private": true,
-  "description": "Sistema de estoque de aviamentos com interface web e PostgreSQL opcional",
+  "description": "Estoque de Aviamentos: validação de backup e integração de cálculo de corte com saídas",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node unit_test.js"
   },
   "engines": {
     "node": ">=18"
