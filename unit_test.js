@@ -14,7 +14,7 @@ test('rejeita códigos duplicados no backup',()=>assert.strictEqual(ctx.validate
 test('rejeita quantidade inválida em movimentação',()=>assert.strictEqual(ctx.validateImportedBackup({products:[],moves:[{qty:-4}],cuts:[]}).ok,false));
 test('código duplicado também é bloqueado no cadastro',()=>assert(html.includes("String(x.code||'').trim()===p.code")));
 test('conferência usa tolerância numérica para diferenças de ponto flutuante',()=>assert(html.includes('const tolerance=Math.max(0.001,Math.abs(planned)*1e-9)')));
-test('backup exportado identifica a versão 1.3.2',()=>assert(html.includes("version:'1.3.2'")));
+test('backup exportado identifica a versão 1.3.3',()=>assert(html.includes("version:'1.3.3'")));
 test('restauração pede confirmação com quantidades e valida os dados antes',()=>assert(html.includes('const validation=validateImportedBackup(data)')&&html.includes('${data.products.length} produto(s)')));
 test('não altera regras de consumo já cadastradas',()=>{assert(html.includes('amount:0,unit:\'unidades\',requiresManual:true'));assert(html.includes('const meters=total*1.3'));assert(html.includes('g.qty*.35'));assert(html.includes('total*.4'));});
 test('novas páginas de reservas, embalagens, previsão e assistente existem',()=>{for(const id of ['reservas','embalagens','previsao','assistente'])assert(html.includes('id="page-'+id+'"'));});
@@ -48,4 +48,12 @@ test('previsão respeita prazo e margem configurados',()=>{const r=forecastCtx.c
 test('previsão trata janela zero como valor padrão seguro',()=>{const r=forecastCtx.calculateForecastMetrics({used:30,windowDays:0,available:0,leadDays:7,safetyDays:7});assert.strictEqual(r.daily,1);assert.strictEqual(r.suggested,14);});
 test('previsão considera somente datas válidas e não futuras',()=>assert(html.includes('Number.isFinite(t)&&t<=Date.now()&&t>=since')));
 test('previsão mantém sugestões na unidade cadastrada e sem conversões',()=>assert(html.includes('Sugestão de reposição')&&html.includes('Ela não converte metros, unidades, rolos ou caixas')));
+
+test('envio de corte permite quantidade zero para registrar falta sem baixar saldo',()=>assert(html.includes('line.qty<0')&&html.includes('if(line.qty<=0)continue')&&html.includes('lastDispatch')));
+test('envio parcial não exige igualdade com o cálculo',()=>assert(!html.includes('Math.abs(line.qty-expected)>0.0005')&&html.includes('Quantidade enviada pode ser parcial ou extra')));
+test('saída parcial continua bloqueando quantidade acima do saldo livre',()=>assert(html.includes('if(totalQty>available+1e-9)')));
+test('pendência e sobra são registradas na descrição da movimentação',()=>assert(html.includes('Envio parcial; faltam')&&html.includes('Envio extra de')));
+test('painel inicial inclui gráfico de atividade de entradas e saídas',()=>assert(html.includes('id="movementActivityChart"')&&html.includes('function renderMovementActivityChart()')));
+test('gráfico de atividade conta registros sem somar unidades incompatíveis',()=>assert(html.includes('d[m.type]++')&&html.includes('não quantidade de material')));
+
 console.log(`RESULT: ${pass} PASS, ${fail} FAIL`);if(fail)process.exitCode=1;
