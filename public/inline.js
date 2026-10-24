@@ -25,7 +25,7 @@ const defaultProducts = [
  ['Courinho marrom','Aviamento','Marrom', 'unidade',0,0,''],
  ['Refletivo','Aviamento','', 'metro',0,0,'Consumo em metros; cada rolo contém 50 m'],
  ['Elástico','Aviamento','', 'metro',0,0,'Consumo em metros; rolo com 25 m; pacote com 15 rolos (375 m por pacote)'],
- ['Cordão','Aviamento','', 'unidade',0,0,'Consumo por peça não informado'],
+ ['Cordão','Aviamento','', 'unidade',0,0,'1 cordão por peça; pacote com 1.000 cordões'],
  ...['azul','bege','cinza','preto','caqui','areia'].map(c=>['Zíper 15 cm','Fechamento',c,'unidade',0,100,'Pacote de 100 unidades (valor padrão editável no cadastro)'])
 ];
 let state = loadState();
@@ -36,7 +36,7 @@ let currentCalc = null;
 let currentPhoto = null;
 let voiceRecognition = null;
 function loadState(){
- try { const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); return {products:Array.isArray(s.products)?s.products:[],moves:Array.isArray(s.moves)?s.moves:[],cuts:Array.isArray(s.cuts)?s.cuts:[],audits:Array.isArray(s.audits)?s.audits:[],reservations:Array.isArray(s.reservations)?s.reservations:[],packages:Array.isArray(s.packages)?s.packages:[]}; }
+ try { const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); return {products:Array.isArray(s.products)?s.products:[],moves:Array.isArray(s.moves)?s.moves:[],cuts:Array.isArray(s.cuts)?s.cuts:[],audits:Array.isArray(s.audits)?s.audits:[],reservations:Array.isArray(s.reservations)?s.reservations:[],packages:Array.isArray(s.packages)?s.packages:[],workshopStock:Array.isArray(s.workshopStock)?s.workshopStock:[]}; }
  catch(e){return {products:[],moves:[],cuts:[],audits:[]};}
 }
 function persist(){
@@ -73,13 +73,14 @@ function norm(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/
 function renderAll(){renderStats();renderStock();renderProductSelects();renderMoves();renderCuts();renderHome();renderWorkshops();refreshInvProducts();renderAuditHistory();renderReports();renderReservations();renderPackages();renderForecast();}
 function renderStats(){
  $('statProducts').textContent=state.products.length;
- $('statStock').textContent=String(stockTotal());const stockNote=$('statStock')?.parentElement?.querySelector('.statnote');if(stockNote)stockNote.textContent=state.products.length?'Produtos cadastrados; saldos separados por unidade: '+stockUnitSummary():'Nenhum produto cadastrado';
+ $('statStock').textContent=String(stockTotal());const stockNote=$('statStock')?.parentElement?.querySelector('.statnote');if(stockNote)stockNote.textContent=state.products.length?'Saldos por unidade: '+stockUnitSummary():'Nenhum produto cadastrado';
  $('statCuts').textContent=state.cuts.length;
  $('statOut').textContent=state.moves.filter(m=>m.type==='saida').length;
 }
 function renderHome(){
  const products=[...state.products].sort((a,b)=>Number(a.qty)-Number(b.qty)).slice(0,7);
  $('homeStock').innerHTML=products.length?products.map(p=>`<div class="productrow"><div><strong>${esc(p.name)} ${p.color?'<span class="muted">· '+esc(p.color)+'</span>':''}</strong><small>${esc(p.unit)}${p.notes?' · '+esc(p.notes):''}</small></div><span class="pill ${Number(p.qty)<=0?'badge-low':'badge-ok'}">${fmt(p.qty)} ${esc(p.unit)}</span></div>`).join(''):'<div class="empty">Nenhum produto cadastrado. Use “Adicionar lista de aviamentos” para começar.</div>';
+ renderProductStockChart();
  renderCategoryChart();
  renderMovementActivityChart();
  renderStockAlerts();
@@ -100,14 +101,26 @@ function renderStockAlerts(){
 }
 function renderMovementActivityChart(){
  const el=$('movementActivityChart');if(!el)return;
+ const count=Math.max(7,Math.min(90,Number($('homeChartPeriod')?.value||30)));
  const days=[];const today=new Date();today.setHours(0,0,0,0);
- for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(today.getDate()-i);const key=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');days.push({key,label:d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit'}),entrada:0,saida:0});}
+ for(let i=count-1;i>=0;i--){const d=new Date(today);d.setDate(today.getDate()-i);const key=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');days.push({key,label:count>14?d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit'}),entrada:0,saida:0});}
  const index=new Map(days.map(d=>[d.key,d]));
- (state.moves||[]).forEach(m=>{const t=new Date(m.date);if(!Number.isFinite(t.getTime()))return;const localDay=new Date(t.getFullYear(),t.getMonth(),t.getDate());const key=[localDay.getFullYear(),String(localDay.getMonth()+1).padStart(2,'0'),String(localDay.getDate()).padStart(2,'0')].join('-');const d=index.get(key);if(d&&(m.type==='entrada'||m.type==='saida'))d[m.type]++;});
+ (state.moves||[]).forEach(m=>{const t=new Date(m.date);if(!Number.isFinite(t.getTime()))return;const key=[t.getFullYear(),String(t.getMonth()+1).padStart(2,'0'),String(t.getDate()).padStart(2,'0')].join('-');const d=index.get(key);if(d&&(m.type==='entrada'||m.type==='saida'))d[m.type]++;});
  const max=Math.max(1,...days.map(d=>Math.max(d.entrada,d.saida)));
  if(!state.moves.length){el.innerHTML='<div class="chart-empty">Ainda não há movimentações para comparar.</div>';return;}
- el.innerHTML=days.map(d=>`<div class="chart-row"><div class="chart-label">${esc(d.label)}<div class="muted" style="font-size:11px;font-weight:400">${d.entrada+d.saida} registro(s)</div></div><div style="display:grid;gap:4px"><div class="chart-track" title="Entradas: ${d.entrada}"><div class="chart-bar" style="width:${d.entrada/max*100}%;background:linear-gradient(90deg,#10b981,#6ee7b7)"></div></div><div class="chart-track" title="Saídas: ${d.saida}"><div class="chart-bar" style="width:${d.saida/max*100}%;background:linear-gradient(90deg,#f97316,#fdba74)"></div></div></div><div class="chart-value">+${d.entrada} / −${d.saida}</div></div>`).join('')+'<div class="chart-legend">🟢 Entradas · 🟠 Saídas · Cada barra representa quantidade de registros, não quantidade de material.</div>';
+ const visible=count>30?days.filter((_,i)=>i%Math.ceil(count/30)===0||i===days.length-1):days;
+ el.innerHTML=visible.map(d=>`<div class="chart-row"><div class="chart-label">${esc(d.label)}<div class="muted" style="font-size:11px;font-weight:400">${d.entrada+d.saida} registro(s)</div></div><div style="display:grid;gap:4px"><div class="chart-track" title="Entradas: ${d.entrada}"><div class="chart-bar" style="width:${d.entrada/max*100}%;background:linear-gradient(90deg,#10b981,#6ee7b7)"></div></div><div class="chart-track" title="Saídas: ${d.saida}"><div class="chart-bar" style="width:${d.saida/max*100}%;background:linear-gradient(90deg,#f97316,#fdba74)"></div></div></div><div class="chart-value">+${d.entrada} / −${d.saida}</div></div>`).join('')+`<div class="chart-legend">🟢 Entradas · 🟠 Saídas · Período: ${count} dias. Cada barra conta registros, não quantidades de unidades incompatíveis.</div>`;
 }
+function renderProductStockChart(){
+ const el=$('homeProductChart');if(!el)return;const unit=$('homeProductUnit')?.value||'';let products=state.products.filter(p=>!unit||String(p.unit||'unidade')===unit);
+ if(!products.length){el.innerHTML='<div class="chart-empty">Nenhum produto para a unidade selecionada.</div>';return;}
+ if(!unit){const byUnit=new Map();products.forEach(p=>{const u=String(p.unit||'unidade');if(!byUnit.has(u))byUnit.set(u,[]);byUnit.get(u).push(p);});products=[...byUnit.values()].flatMap(list=>list.sort((a,b)=>(Number(a.qty)||0)-(Number(b.qty)||0)).slice(0,3));}
+ else products=products.sort((a,b)=>(Number(a.qty)||0)-(Number(b.qty)||0)).slice(0,10);
+ const max=Math.max(1,...products.map(p=>Number(p.qty)||0));
+ el.innerHTML=products.map(p=>{const q=Math.max(0,Number(p.qty)||0),w=q?Math.max(2,q/max*100):0;return `<div class="chart-row"><div class="chart-label">${esc(p.name)}${p.color?' · '+esc(p.color):''}<div class="muted" style="font-size:11px;font-weight:400">${esc(p.category||'Aviamento')} · ${esc(p.unit)}</div></div><div class="chart-track"><div class="chart-bar" style="width:${w.toFixed(2)}%;background:${q===0?'linear-gradient(90deg,#ef4444,#fca5a5)':'linear-gradient(90deg,#4d8dff,#8b72ff,#4de0cf)'}"></div></div><div class="chart-value">${fmt(q)} ${esc(p.unit)}</div></div>`;}).join('')+'<div class="chart-legend">Mostrando os menores saldos por unidade; com “Todas”, cada unidade é comparada separadamente.</div>';
+}
+$('homeProductUnit')?.addEventListener('change',renderProductStockChart);
+
 function renderCategoryChart(){
  const el=$('stockCategoryChart');
  if(!el)return;
@@ -149,17 +162,24 @@ function renderProductSelects(){
  $('cutReference').innerHTML='<option value="">Selecione a referência</option>'+REFERENCES.map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('');
 }
 function renderMoves(){
- const rows=[...state.moves].reverse().map(m=>[
- dateFmt(m.date),m.type==='entrada'?'<span class="pill badge-ok">Entrada</span>':m.type==='ajuste'?'<span class="pill">Ajuste</span>':'<span class="pill badge-low">Saída</span>',
- esc(m.productName),fmt(m.qty)+' '+esc(m.unit),esc(m.workshop||'—'),esc(m.cut||'—'),esc(m.referenceName||'—'),esc(m.notes||'—')
- ]);
- $('movesTable').innerHTML=table(['Data','Tipo','Produto','Quantidade','Oficina/destino','Corte','Referência','Descrição'],rows);
+ const q=norm($('moveSearch')?.value||''),type=$('moveFilterType')?.value||'',period=$('moveFilterPeriod')?.value||'30';
+ const since=period==='all'?0:Date.now()-Number(period)*86400000;
+ const filtered=[...state.moves].filter(m=>{const t=new Date(m.date).getTime();const hay=norm([m.productName,m.workshop,m.oc,m.cut,m.referenceName,m.notes,m.type,m.unit].join(' '));return (!q||hay.includes(q))&&(!type||m.type===type)&&Number.isFinite(t)&&t>=since;}).reverse();
+ const rows=filtered.map(m=>[dateFmt(m.date),m.type==='entrada'?'<span class="pill badge-ok">Entrada</span>':m.type==='ajuste'?'<span class="pill">Ajuste</span>':'<span class="pill badge-low">Saída</span>',esc(m.productName),fmt(m.qty)+' '+esc(m.unit),esc(m.workshop||'—'),esc(m.oc||'—'),esc(m.cut||'—'),esc(m.referenceName||'—'),esc(m.notes||'—')]);
+ $('movesTable').innerHTML=table(['Data','Tipo','Produto','Quantidade','Oficina/destino','OC','Corte','Referência','Descrição'],rows, 'Nenhuma movimentação corresponde aos filtros.');
 }
+function workshopKey(workshop,productId){return norm(workshop)+'|'+String(productId);}
+function workshopBalance(workshop,productId){ensureCollections();const row=state.workshopStock.find(x=>workshopKey(x.workshop,x.productId)===workshopKey(workshop,productId));return row?Number(row.qty)||0:0;}
+function setWorkshopBalance(workshop,productId,qty,meta={}){ensureCollections();let row=state.workshopStock.find(x=>workshopKey(x.workshop,x.productId)===workshopKey(workshop,productId));if(!row){const p=state.products.find(x=>x.id===productId);row={id:uid(),workshop:workshop.trim(),productId,productName:p?productLabel(p):meta.productName||'Produto',unit:p?.unit||meta.unit||'unidade',qty:0,history:[]};state.workshopStock.push(row);}row.qty=Number(Math.max(0,qty).toFixed(3));row.updatedAt=new Date().toISOString();row.history=Array.isArray(row.history)?row.history:[];row.history.push({date:row.updatedAt,action:meta.action||'ajuste',qty:meta.delta??qty,delta:meta.delta??qty,unit:row.unit,cut:meta.cut||'',notes:meta.notes||'',before:meta.before??null,after:row.qty});return row;}
 function renderWorkshops(){
- const rows=[...state.moves].filter(m=>m.type==='saida'&&m.workshop).reverse().map(m=>[
- dateFmt(m.date),esc(m.workshop),esc(m.productName),fmt(m.qty)+' '+esc(m.unit),esc(m.cut||'—'),esc(m.referenceName||'—'),esc(m.notes||'—')
- ]);
- $('workshopTable').innerHTML=table(['Data','Oficina','Aviamento','Quantidade enviada','Corte','Referência','Observação'],rows,'Ainda não há saídas vinculadas a oficinas.');
+ ensureCollections();
+ const search=norm($('workshopSearch')?.value||'');
+ const rows=[...state.moves].filter(m=>m.type==='saida'&&m.workshop).filter(m=>!search||norm([m.workshop,m.productName,m.oc,m.cut,m.referenceName,m.notes].join(' ')).includes(search)).reverse().map(m=>[dateFmt(m.date),esc(m.workshop),esc(m.productName),fmt(m.qty)+' '+esc(m.unit),esc(m.oc||'—'),esc(m.cut||'—'),esc(m.referenceName||'—'),esc(m.notes||'—')]);
+ $('workshopTable').innerHTML=table(['Data','Oficina','Aviamento','Quantidade enviada','OC','Corte','Referência','Observação'],rows,'Nenhum envio corresponde à busca.');
+ $('workshopBalanceTable').innerHTML=table(['Oficina','Produto','Saldo registrado','Unidade','Última atualização'],state.workshopStock.filter(x=>Number(x.qty)>0||x.history?.length).map(x=>[esc(x.workshop),esc(x.productName),`<strong>${fmt(x.qty)}</strong>`,esc(x.unit),dateFmt(x.updatedAt)]),'Ainda não há saldos de oficina registrados. Registre o saldo conhecido ou envie material por um corte novo.');
+ const ledgerRows=state.workshopStock.flatMap(x=>(x.history||[]).map(h=>({workshop:x.workshop,productName:x.productName,unit:x.unit,...h}))).filter(h=>!search||norm([h.workshop,h.productName,h.action,h.cut,h.notes].join(' ')).includes(search)).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(h=>[dateFmt(h.date),esc(h.workshop),esc(h.productName),esc(h.action),`${Number(h.delta)>0?'+':''}${fmt(h.delta??h.qty)} ${esc(h.unit||'')}`,esc(h.cut||'—'),esc(h.notes||'—')]);
+ $('workshopLedgerHistory').innerHTML=table(['Data','Oficina','Produto','Operação','Variação','OC / corte','Observação'],ledgerRows,'Nenhum registro de consumo, envio ou devolução encontrado.');
+ const wsSel=$('wsLedgerProduct');if(wsSel){const old=wsSel.value;wsSel.innerHTML='<option value="">Selecione produto</option>'+state.products.map(p=>`<option value="${esc(p.id)}">${esc(productLabel(p))}</option>`).join('');if(state.products.some(p=>p.id===old))wsSel.value=old;}
  const reconcile=[];
  [...state.cuts].slice().reverse().forEach(c=>{
   (c.items||[]).forEach(item=>{
@@ -179,7 +199,7 @@ function renderCuts(){
  $('cutsTable').innerHTML=table(['Data','Corte','Referência','Peças','Oficina','Resumo de aviamentos','Ações'],[...state.cuts].reverse().map(c=>[
  dateFmt(c.date),esc(c.number||'—'),esc(c.referenceName),fmt(c.totalPieces),esc(c.workshop||'—'),
  esc(c.items.map(i=>i.name+': '+fmt(i.amount)+' '+i.unit).join('; ')),
- `<button class="secondary small" data-view-cut="${esc(c.id)}">Ver</button>`
+ `<div class="actions"><button class="secondary small" data-view-cut="${esc(c.id)}">Ver</button><button class="danger small" data-delete-cut="${esc(c.id)}">Apagar</button></div>`
  ]));
 }
 function seed(){
@@ -211,8 +231,10 @@ document.addEventListener('click',e=>{
  const edit=e.target.closest('[data-edit-product]')?.dataset.editProduct;
  const del=e.target.closest('[data-delete-product]')?.dataset.deleteProduct;
  const view=e.target.closest('[data-view-cut]')?.dataset.viewCut;
+ const deleteCut=e.target.closest('[data-delete-cut]')?.dataset.deleteCut;
  if(edit){const p=state.products.find(x=>x.id===edit);if(!p)return;goto('produto');$('productId').value=p.id;$('productName').value=p.name;$('productCategory').value=p.category||'Aviamento';$('productColor').value=p.color||'';$('productUnit').value=p.unit;$('productQty').value=p.qty;$('productPackSize').value=p.packSize||'';$('productCode').value=p.code||'';$('productMinQty').value=p.minQty??'';$('productNotes').value=p.notes||'';$('productFormTitle').textContent='Editar produto';}
  if(del){const p=state.products.find(x=>x.id===del);if(!p)return;if(Number(p.qty)!==0&&!confirm('Este produto tem saldo. Excluir mesmo assim?'))return;if(!confirm('Excluir '+p.name+'?'))return;state.products=state.products.filter(x=>x.id!==del);persist();renderAll();toast('Produto excluído.');}
+ if(deleteCut){const c=state.cuts.find(x=>x.id===deleteCut);if(!c)return;if(!confirm(`Apagar o cálculo do corte ${c.number||'—'} (${c.referenceName||'sem referência'})?\n\nIsso remove somente o cálculo salvo. Não apaga movimentações, saídas, reservas ou altera o saldo do estoque.`))return;state.cuts=state.cuts.filter(x=>x.id!==deleteCut);if(currentCalc?.id===deleteCut){currentCalc=null;$('cutResults').classList.add('hidden');$('bulkIssuePanel').classList.add('hidden');}persist();renderAll();toast('Cálculo apagado. O estoque e as movimentações foram mantidos.');}
  if(view){const c=state.cuts.find(x=>x.id===view);if(c){alert(`Corte: ${c.number||'—'}\nReferência: ${c.referenceName}\nPeças: ${c.totalPieces}\n\n${c.items.map(i=>`${i.name}: ${fmt(i.amount)} ${i.unit}${i.detail?' ('+i.detail+')':''}`).join('\n')}`);}}
 });
 function buildSizeGrid(){ $('sizeGrid').innerHTML=SIZES.map(s=>`<div class="sizebox"><label for="size${s}">Tam. ${s}</label><input id="size${s}" type="number" min="0" step="1" value="0" inputmode="numeric"></div>`).join('');}
@@ -232,7 +254,7 @@ function calculateCut(){
   } else if(name==='Zíper 15 cm'){
    items.push({name,amount:total,unit:'unidades',detail:`distribuir pela cor cadastrada; pacotes conforme cadastro`});
   } else if(name==='Cordão'){
-   items.push({name,amount:0,unit:'unidades',requiresManual:true,detail:'Consumo por peça não foi definido. Informe a quantidade manualmente antes de enviar; o sistema não assume 1 por peça.'});
+   items.push({name,amount:total,unit:'unidades',detail:`${fmt(total)} cordões necessários; consumo de 1 cordão por peça. Pacote com 1.000 cordões; a retirada será registrada em pacotes equivalentes e unidades, preservando a sobra na oficina.`});
   } else if(name==='Elástico'){
    const meters=total*.8;
    const rolls=Math.ceil(meters/25);
@@ -282,61 +304,73 @@ function renderCalc(c){
 $('cutForm').addEventListener('submit',e=>{e.preventDefault();currentCalc=calculateCut();if(currentCalc)renderCalc(currentCalc);});
 $('resetCut').addEventListener('click',()=>{SIZES.forEach(s=>$('size'+s).value=0);$('cutPairs').value='';$('cutOC').value='';$('cutNumber').value='';$('cutWorkshop').value='';$('cutNotes').value='';currentCalc=null;$('cutResults').classList.add('hidden');});
 $('saveCut').addEventListener('click',()=>{if(!currentCalc)return;if(state.cuts.some(c=>c.id===currentCalc.id)){toast('Este cálculo já foi salvo.');return;}const number=String(currentCalc.number||'').trim();if(number&&state.cuts.some(c=>String(c.number||'').trim()===number)){toast('Já existe um cálculo salvo com este número de corte. Use outro número ou consulte o cálculo existente.');return;}state.cuts.push(currentCalc);persist();renderAll();toast('Cálculo salvo.');});
+$('deleteAllCuts').addEventListener('click',()=>{if(!state.cuts.length)return toast('Não há cálculos salvos para apagar.');if(!confirm(`Apagar TODOS os ${state.cuts.length} cálculos salvos?\n\nEsta ação remove somente os cálculos. Não apaga movimentações, saídas para oficina, reservas, produtos ou saldos de estoque. Essa ação não pode ser desfeita sem um backup.`))return;const ids=new Set(state.cuts.map(c=>c.id));state.cuts=[];if(currentCalc&&ids.has(currentCalc.id)){currentCalc=null;$('cutResults').classList.add('hidden');$('bulkIssuePanel').classList.add('hidden');}persist();renderAll();toast('Todos os cálculos foram apagados. Estoque e movimentações preservados.');});
 function stockUnitFactor(product, calculatedUnit){
  const pu=norm(product.unit||'unidade'), cu=norm(calculatedUnit||'unidades');
  const pn=norm(product.name||'');
  const unitAliases={unidades:'unidade',metros:'metro',gramas:'grama'};
  const base=unitAliases[cu]||cu;
- // Conversões fixas corretas: elástico = 15 rolos x 25 m por pacote (375 m);
- // refletivo = 20 unidades x 50 m por caixa (1.000 m). Não usar packSize
- // como metros, pois o cadastro pode guardar 15 rolos ou 20 unidades nele.
+ // Factores de embalagem conhecidos pelo processo informado pelo usuário.
+ // Elástico: 15 rolos por pacote, 25 m por rolo = 375 m/pacote.
+ // Refletivo: 20 rolos por caixa/pacote, 50 m por rolo = 1.000 m.
+ // Cordão: 1.000 cordões por pacote; 1 cordão por peça.
+ if(pn.includes('cordao') && base==='unidade'){
+  if(pu==='pacote') return 1000;
+  if(pu==='caixa' && Number(product.packSize)>0) return Number(product.packSize);
+  if(pu==='unidade') return 1;
+ }
  if(base==='metro' && pn.includes('elastic')){
   if(pu==='pacote') return 375;
   if(pu==='rolo' || pu==='unidade') return 25;
   if(pu==='metro') return 1;
  }
  if(base==='metro' && pn.includes('refletivo')){
-  if(pu==='caixa') return 1000;
+  if(pu==='caixa' || pu==='pacote') return 1000;
   if(pu==='unidade' || pu==='rolo') return 50;
   if(pu==='metro') return 1;
  }
  if(pu===base) return 1;
  if(base==='grama'&&pu==='kg') return 1000;
- if(base==='metro'&&['pacote','caixa'].includes(pu)){
-  if(Number(product.packSize)>0) return Number(product.packSize);
-  // Sem conteúdo cadastrado, não inventar conversão de pacote/caixa para metros.
-  return 0;
- }
+ if(base==='metro'&&['pacote','caixa'].includes(pu)) return Number(product.packSize)||0;
  if(base==='metro'&&pu==='rolo') return Number(product.packSize)||50;
  if(base==='metro'&&pu==='unidade') return Number(product.packSize)||0;
- if(base==='unidade'&&['pacote','caixa','rolo'].includes(pu)){
-  if(Number(product.packSize)>0) return Number(product.packSize);
-  return 0;
- }
+ if(base==='unidade'&&['pacote','caixa','rolo'].includes(pu)) return Number(product.packSize)||0;
  if(base==='grama'&&pu==='pacote') return Number(product.packSize)||0;
  return 0;
 }
 function packagingBreakdown(item, product){
  const name=norm(item.name), unit=norm(item.unit), pu=norm(product.unit||'');
+ const amount=Number(item.amount)||0;
+ if(name==='cordao' && unit==='unidades'){
+  const units=Math.ceil(amount), packs=Math.floor(units/1000), loose=units%1000, remainder=loose?1000-loose:0;
+  const equivalent=units/1000;
+  return `Separação: ${packs} pacote(s) fechado(s)${loose?` + ${loose} cordão(ões) de 1 pacote aberto, sobrando ${remainder} cordão(ões) nesse pacote`:''}. Baixa equivalente no estoque por pacote: ${fmt(equivalent)} pacote(s).`;
+ }
  if(unit!=='metros') return '';
- const meters=Number(item.amount)||0;
+ const meters=amount;
  if(name==='elastic' || name==='elastico'){
   const rolls=Math.ceil(meters/25), packs=Math.floor(rolls/15), loose=rolls%15;
   const stockEquivalent=rolls/15;
   const roundedMeters=rolls*25;
-  return `Separação: ${packs} pacote(s) fechado(s)${loose?` + ${loose} rolo(s) avulso(s) retirado(s) de 1 pacote aberto`:''}; ${rolls} rolos no total (${fmt(roundedMeters)} m separados). Baixa equivalente no estoque por pacote: ${fmt(stockEquivalent)} pacote(s).`;
+  return `Separação física: ${packs} pacote(s) fechado(s)${loose?` + ${loose} rolo(s) retirado(s) de 1 pacote aberto, sobrando ${15-loose} rolo(s) nesse pacote`:''}; ${rolls} rolos no total (${fmt(roundedMeters)} m separados). Baixa equivalente no estoque por pacote: ${fmt(stockEquivalent)} pacote(s). A baixa é por pacote/rolo, não por metros.`;
  }
  if(name==='refletivo'){
-  const units=Math.ceil(meters/50), boxes=Math.floor(units/20), loose=units%20;
-  const stockEquivalent=units/20;
-  const roundedMeters=units*50;
-  return `Separação: ${boxes} caixa(s) fechada(s)${loose?` + ${loose} unidade(s) avulsa(s) retirada(s) de 1 caixa aberta`:''}; ${units} unidades no total (${fmt(roundedMeters)} m separados). Baixa equivalente no estoque por caixa: ${fmt(stockEquivalent)} caixa(s).`;
+  const rolls=Math.ceil(meters/50), boxes=Math.floor(rolls/20), loose=rolls%20;
+  const stockEquivalent=rolls/20;
+  const roundedMeters=rolls*50;
+  return `Separação física: ${boxes} caixa(s) fechada(s)${loose?` + ${loose} rolo(s) retirado(s) de 1 caixa aberta, sobrando ${20-loose} rolo(s) nessa caixa`:''}; ${rolls} rolos no total (${fmt(roundedMeters)} m separados). Baixa equivalente no estoque por caixa/pacote: ${fmt(stockEquivalent)} caixa(s). A baixa é por caixa/rolo, não por metros.`;
  }
  return '';
 }
 function stockWithdrawalQty(item, product){
  const name=norm(item.name), unit=norm(item.unit), pu=norm(product.unit||'');
  const amount=Number(item.amount)||0;
+ if(unit==='unidades' && name==='cordao'){
+  const units=Math.ceil(amount);
+  if(pu==='pacote') return units/1000;
+  if(pu==='unidade') return units;
+  if(pu==='caixa' && Number(product.packSize)>0) return units/Number(product.packSize);
+ }
  if(unit==='metros' && (name==='elastic'||name==='elastico')){
   const rolls=Math.ceil(amount/25);
   if(pu==='pacote') return rolls/15;
@@ -344,9 +378,9 @@ function stockWithdrawalQty(item, product){
   if(pu==='metro') return amount;
  }
  if(unit==='metros' && name==='refletivo'){
-  const units=Math.ceil(amount/50);
-  if(pu==='caixa') return units/20;
-  if(pu==='unidade'||pu==='rolo') return units;
+  const rolls=Math.ceil(amount/50);
+  if(pu==='caixa'||pu==='pacote') return rolls/20;
+  if(pu==='unidade'||pu==='rolo') return rolls;
   if(pu==='metro') return amount;
  }
  const factor=stockUnitFactor(product,item.unit);
@@ -421,6 +455,7 @@ $('confirmBulkIssue').addEventListener('click',()=>{
   dispatchLines.push({productId:p.id,productName:productLabel(p),unit:p.unit,required:expected, sent:line.qty, missing:line.missingQty, extra:line.extraQty, workshop, oc:currentCalc.oc||'', cut:currentCalc.number||'', date:now});
   if(line.qty<=0)continue;
   p.qty=Number((before-line.qty).toFixed(3));
+  if(workshop&&line.qty>0){const wb=workshopBalance(workshop,p.id);setWorkshopBalance(workshop,p.id,wb+line.qty,{action:'envio do estoque central',qty:line.qty,cut:currentCalc.number||'',notes:`OC ${currentCalc.oc||'—'}`,before:wb,delta:line.qty});}
   const shortage=line.missingQty>0?`Envio parcial; faltam ${fmt(line.missingQty)} ${p.unit}.`:'';
   const extra=line.extraQty>0?` Envio extra de ${fmt(line.extraQty)} ${p.unit}; conferir sobra na oficina.`:'';
   state.moves.push({id:uid(),date:now,type:'saida',productId:p.id,productName:productLabel(p),qty:line.qty,unit:p.unit,baseQty:line.baseQty,baseUnit:line.item.unit,workshop,oc:currentCalc.oc||'',cut:currentCalc.number||'',referenceId:currentCalc.referenceId||'',referenceName:currentCalc.referenceName||'',notes:`Envio de corte. ${shortage}${extra}`.trim(),balanceBefore:before,balanceAfter:Number(p.qty),actor:'Local user'});
@@ -524,7 +559,7 @@ $('interpretVoice').addEventListener('click',()=>{
  toast('Não consegui interpretar o comando. Tente “500 unidades de zíper preto”.');
 });
 $('exportBtn').addEventListener('click',()=>{
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.3.3',...state},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.4.1',...state},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='backup-estoque-aviamentos.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  toast('Backup exportado. Guarde o arquivo em local seguro.');
 });
@@ -533,8 +568,8 @@ function validateImportedBackup(data){
  if(!data||typeof data!=='object'||Array.isArray(data))return {ok:false,message:'O arquivo precisa conter um objeto JSON.'};
  for(const key of ['products','moves','cuts'])if(!Array.isArray(data[key]))return {ok:false,message:`O backup não contém uma lista válida de ${key}.`};
  if(data.audits!==undefined&&!Array.isArray(data.audits))return {ok:false,message:'A lista de conferências do backup está inválida.'};
- for(const key of ['reservations','packages'])if(data[key]!==undefined&&!Array.isArray(data[key]))return {ok:false,message:`O backup contém uma lista inválida de ${key}.`};
- const objectLists=['products','moves','cuts','audits','reservations','packages'];
+ for(const key of ['reservations','packages','workshopStock'])if(data[key]!==undefined&&!Array.isArray(data[key]))return {ok:false,message:`O backup contém uma lista inválida de ${key}.`};
+ const objectLists=['products','moves','cuts','audits','reservations','packages','workshopStock'];
  for(const key of objectLists){if(!Array.isArray(data[key]))continue;for(let i=0;i<data[key].length;i++){const item=data[key][i];if(!item||typeof item!=='object'||Array.isArray(item))return {ok:false,message:`Registro ${i+1} da lista ${key} está inválido.`};}}
  const codes=new Set();
  for(let i=0;i<data.products.length;i++){
@@ -548,6 +583,7 @@ function validateImportedBackup(data){
  const productIds=new Set(data.products.map(p=>String(p.id||'')));const recordIds=new Set();for(let i=0;i<data.products.length;i++){const id=String(data.products[i].id||'');if(id&&recordIds.has(id))return {ok:false,message:`Identificador de produto duplicado: ${id}.`};if(id)recordIds.add(id);}
  for(let i=0;i<(data.reservations||[]).length;i++){const r=data.reservations[i];if(typeof r.oc!=='string'||!r.oc.trim()||!r.productId||!productIds.has(String(r.productId))||!Number.isFinite(Number(r.qty))||Number(r.qty)<0||!['ativa','liberada','consumida'].includes(r.status))return {ok:false,message:`Reserva ${i+1} inválida ou vinculada a produto inexistente.`};if(r.status==='ativa'&&Number(r.qty)<=0)return {ok:false,message:`Reserva ativa ${i+1} precisa ter quantidade maior que zero.`};}
  const packageCodes=new Set();for(let i=0;i<(data.packages||[]).length;i++){const p=data.packages[i];const code=String(p.code||'').trim();if(!code||!p.productId||!productIds.has(String(p.productId))||!Number.isFinite(Number(p.initial))||Number(p.initial)<0||!Number.isFinite(Number(p.remaining))||Number(p.remaining)<0||Number(p.remaining)>Number(p.initial)||typeof p.unit!=='string'||!p.unit.trim())return {ok:false,message:`Embalagem rastreada ${i+1} inválida ou vinculada a produto inexistente.`};if(packageCodes.has(code.toLowerCase()))return {ok:false,message:`Código de embalagem duplicado: ${code}.`};packageCodes.add(code.toLowerCase());}
+ for(let i=0;i<(data.workshopStock||[]).length;i++){const w=data.workshopStock[i];if(!w||typeof w.workshop!=='string'||!w.workshop.trim()||!productIds.has(String(w.productId||''))||!Number.isFinite(Number(w.qty))||Number(w.qty)<0||typeof w.unit!=='string'||!w.unit.trim()||!Array.isArray(w.history||[]))return {ok:false,message:`Saldo de oficina ${i+1} inválido ou vinculado a produto inexistente.`};}
  return {ok:true};
 }
 $('backupFile').addEventListener('change',async e=>{
@@ -560,7 +596,7 @@ $('backupFile').addEventListener('change',async e=>{
   const ok=confirm(`ATENÇÃO: restaurar este backup substituirá os dados atuais deste navegador por ${data.products.length} produto(s), ${data.moves.length} movimentação(ões) e ${data.cuts.length} corte(s). Exporte um backup atual antes de continuar. Deseja prosseguir?`);
   if(!ok)return;
   const previous=localStorage.getItem(STORAGE_KEY);
-  try{state={products:data.products,moves:data.moves,cuts:data.cuts,audits:Array.isArray(data.audits)?data.audits:[],reservations:Array.isArray(data.reservations)?data.reservations:[],packages:Array.isArray(data.packages)?data.packages:[]};persist();renderProductSelects();renderAll();toast('Backup restaurado com sucesso. Confira os saldos e registros.');}
+  try{state={products:data.products,moves:data.moves,cuts:data.cuts,audits:Array.isArray(data.audits)?data.audits:[],reservations:Array.isArray(data.reservations)?data.reservations:[],packages:Array.isArray(data.packages)?data.packages:[],workshopStock:Array.isArray(data.workshopStock)?data.workshopStock:[]};persist();renderProductSelects();renderAll();toast('Backup restaurado com sucesso. Confira os saldos e registros.');}
   catch(err){if(previous===null)localStorage.removeItem(STORAGE_KEY);else localStorage.setItem(STORAGE_KEY,previous);state=loadState();renderProductSelects();renderAll();throw err;}
  }catch(err){alert('Não foi possível restaurar o backup: '+(err.message||'arquivo inválido'));}
 });
@@ -594,8 +630,22 @@ function refreshInvProducts(){const el=$('invProduct');if(el)el.innerHTML='<opti
 function renderAuditHistory(){const rows=(state.audits||[]).slice().reverse().map(a=>[dateFmt(a.date),esc(a.productName),fmt(a.before)+' → '+fmt(a.counted)+' '+esc(a.unit),`<span class="audit-diff">${a.diff>0?'+':''}${fmt(a.diff)}</span>`,esc(a.actor||'Local user')]);$('invHistory').innerHTML=table(['Data','Produto','Sistema → contado','Diferença','Responsável'],rows,'Nenhum ajuste físico registrado.');}
 $('invCompare')?.addEventListener('click',()=>{const p=state.products.find(x=>x.id===$('invProduct').value), raw=$('invCount').value;if(!p||raw==='')return toast('Selecione o produto e informe a quantidade contada.');const counted=Number(raw);if(!Number.isFinite(counted)||counted<0)return toast('A contagem deve ser zero ou maior.');pendingInventory={id:p.id,name:productLabel(p),unit:p.unit,before:Number(p.qty)||0,counted,diff:counted-(Number(p.qty)||0)};$('invResult').innerHTML=`<strong>${esc(p.name)}</strong><br>Saldo no sistema: ${fmt(pendingInventory.before)} ${esc(p.unit)}<br>Contagem física: ${fmt(counted)} ${esc(p.unit)}<br>Diferença: <span class="audit-diff">${pendingInventory.diff>0?'+':''}${fmt(pendingInventory.diff)} ${esc(p.unit)}</span><br><small>O saldo ainda não foi alterado.</small>`;$('invConfirm').disabled=pendingInventory.diff===0;});
 $('invConfirm')?.addEventListener('click',()=>{if(!pendingInventory)return;const p=state.products.find(x=>x.id===pendingInventory.id);if(!p)return toast('Produto não encontrado.');if(!confirm(`Confirmar ajuste de ${p.name}? Saldo atual: ${fmt(p.qty)} ${p.unit}; novo saldo: ${fmt(pendingInventory.counted)} ${p.unit}.`))return;const before=Number(p.qty)||0;p.qty=pendingInventory.counted;state.audits=state.audits||[];state.audits.push({id:uid(),date:new Date().toISOString(),productId:p.id,productName:productLabel(p),unit:p.unit,before,counted:p.qty,diff:p.qty-before,actor:'Local user'});state.moves.push({id:uid(),date:new Date().toISOString(),type:'ajuste',productId:p.id,productName:productLabel(p),qty:Math.abs(p.qty-before),unit:p.unit,workshop:'',cut:'',referenceName:'Inventário físico',notes:'Ajuste confirmado após contagem física',balanceBefore:before,balanceAfter:p.qty,actor:'Local user'});persist();renderAll();renderAuditHistory();pendingInventory=null;$('invConfirm').disabled=true;$('invResult').textContent='Ajuste registrado no histórico.';toast('Inventário ajustado e registrado.');});
-function renderReports(){const days=$('reportPeriod')?.value||'30',since=days==='all'?0:Date.now()-Number(days)*86400000;const moves=state.moves.filter(m=>new Date(m.date).getTime()>=since);const outs=moves.filter(m=>m.type==='saida');const groupedIn=new Map(),groupedOut=new Map();moves.filter(m=>m.type==='entrada').forEach(m=>{const k=String(m.unit||'unidade');groupedIn.set(k,(groupedIn.get(k)||0)+Number(m.qty||0));});outs.forEach(m=>{const k=(m.productName||'Produto')+' · '+(m.unit||'');groupedOut.set(k,(groupedOut.get(k)||0)+Number(m.qty||0));});const inSummary=[...groupedIn].map(([u,q])=>fmt(q)+' '+u).join(' · ')||'0';const outSummary=[...new Set(outs.map(m=>String(m.unit||'unidade')))].map(u=>fmt(outs.filter(m=>String(m.unit||'unidade')===u).reduce((n,m)=>n+Number(m.qty||0),0))+' '+u).join(' · ')||'0';$('reportSummary').innerHTML=[['Entradas por unidade',inSummary],['Saídas por unidade',outSummary],['Movimentações',moves.length]].map(([a,b])=>`<div class="card span4"><div class="statlabel">${a}</div><div class="statvalue" style="font-size:18px">${esc(b)}</div></div>`).join('');$('consumptionTable').innerHTML=table(['Produto','Quantidade de saída no período'],[...groupedOut].sort((a,b)=>b[1]-a[1]).map(([k,v])=>[esc(k),fmt(v)]),'Nenhuma saída no período selecionado.');}
+function renderReports(){const days=$('reportPeriod')?.value||'30',since=days==='all'?0:Date.now()-Number(days)*86400000;const moves=state.moves.filter(m=>{const t=new Date(m.date).getTime();return Number.isFinite(t)&&t>=since;});const outs=moves.filter(m=>m.type==='saida');const groupedIn=new Map(),groupedOut=new Map();moves.filter(m=>m.type==='entrada').forEach(m=>{const k=String(m.unit||'unidade');groupedIn.set(k,(groupedIn.get(k)||0)+Number(m.qty||0));});outs.forEach(m=>{const k=(m.productName||'Produto')+' · '+(m.unit||'');groupedOut.set(k,(groupedOut.get(k)||0)+Number(m.qty||0));});const inSummary=[...groupedIn].map(([u,q])=>fmt(q)+' '+u).join(' · ')||'0';const outSummary=[...new Set(outs.map(m=>String(m.unit||'unidade')))].map(u=>fmt(outs.filter(m=>String(m.unit||'unidade')===u).reduce((n,m)=>n+Number(m.qty||0),0))+' '+u).join(' · ')||'0';$('reportSummary').innerHTML=[['Entradas por unidade',inSummary],['Saídas por unidade',outSummary],['Movimentações',moves.length],['Pendências estimadas',state.cuts.reduce((n,c)=>n+(c.lastDispatch?.lines||[]).filter(l=>Number(l.missing)>0).length,0)]].map(([a,b])=>`<div class="card span3"><div class="statlabel">${esc(a)}</div><div class="statvalue" style="font-size:18px">${esc(b)}</div></div>`).join('');$('consumptionTable').innerHTML=table(['Produto','Quantidade de saída no período'],[...groupedOut].sort((a,b)=>b[1]-a[1]).map(([k,v])=>[esc(k),fmt(v)]),'Nenhuma saída no período selecionado.');$('reportStockTable').innerHTML=table(['Produto','Categoria','Saldo','Unidade','Reservado','Disponível','Mínimo'],state.products.map(p=>[esc(productLabel(p)),esc(p.category||'Aviamento'),fmt(p.qty),esc(p.unit),fmt(activeReservations(p.id)),fmt(availableQty(p)),p.minQty==null?'—':fmt(p.minQty)]),'Nenhum produto cadastrado.');}
 $('reportPeriod')?.addEventListener('change',renderReports);$('reportCsv')?.addEventListener('click',()=>{const days=$('reportPeriod').value,since=days==='all'?0:Date.now()-Number(days)*86400000;const rows=[['Data','Tipo','Produto','Quantidade','Unidade','Oficina','Corte','Observação'],...state.moves.filter(m=>new Date(m.date).getTime()>=since).map(m=>[m.date,m.type,m.productName,m.qty,m.unit,m.workshop||'',m.cut||'',m.notes||''])];const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='relatorio-consumo.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
+$('homeChartPeriod')?.addEventListener('change',renderMovementActivityChart);
+['moveSearch','moveFilterType','moveFilterPeriod'].forEach(id=>$(id)?.addEventListener(id==='moveSearch'?'input':'change',renderMoves));
+$('workshopSearch')?.addEventListener('input',renderWorkshops);
+$('workshopLedgerForm')?.addEventListener('submit',e=>{
+ e.preventDefault();ensureCollections();const workshop=$('wsLedgerWorkshop').value.trim(),productId=$('wsLedgerProduct').value,action=$('wsLedgerAction').value,qty=Number($('wsLedgerQty').value),cut=$('wsLedgerCut').value.trim(),notes=$('wsLedgerNotes').value.trim();const p=state.products.find(x=>x.id===productId);if(!workshop||!p)return toast('Informe oficina e produto.');if(!Number.isFinite(qty)||qty<0)return toast('Informe quantidade válida.');const before=workshopBalance(workshop,productId);let after=before;
+ if(action==='saldo'){after=qty;setWorkshopBalance(workshop,productId,after,{action:'saldo inicial/conferência',qty,cut,notes,before,delta:qty-before});}
+ else if(action==='consumo'){if(qty>before+1e-9)return toast(`Saldo insuficiente na oficina. Há ${fmt(before)} ${p.unit}. Registre primeiro o saldo conhecido ou o envio.`);after=before-qty;setWorkshopBalance(workshop,productId,after,{action:'consumo na oficina',qty,cut,notes,before,delta:-qty});}
+ else {if(qty>before+1e-9)return toast(`Devolução maior que o saldo registrado na oficina (${fmt(before)} ${p.unit}).`);after=before-qty;setWorkshopBalance(workshop,productId,after,{action:'devolução ao estoque',qty,cut,notes,before,delta:-qty});const central=Number(p.qty)||0;p.qty=Number((central+qty).toFixed(3));state.moves.push({id:uid(),date:new Date().toISOString(),type:'entrada',productId:p.id,productName:productLabel(p),qty,unit:p.unit,workshop,cut,oc:'',referenceName:'',notes:`Devolução da oficina. ${notes}`.trim(),balanceBefore:central,balanceAfter:p.qty,actor:'Local user'});}
+ persist();renderAll();$('wsLedgerQty').value='';$('wsLedgerNotes').value='';toast(action==='saldo'?'Saldo da oficina registrado.':action==='consumo'?'Consumo da oficina registrado.':'Devolução registrada e estoque central atualizado.');
+});
+$('exportWorkshopCsv')?.addEventListener('click',()=>{const rows=[['Oficina','Produto','Saldo','Unidade','Atualizado'],...state.workshopStock.map(x=>[x.workshop,x.productName,x.qty,x.unit,x.updatedAt||''])];downloadCsv('saldos-oficina.csv',rows);});
+$('reportStockCsv')?.addEventListener('click',()=>downloadCsv('estoque-atual.csv',[['Produto','Categoria','Cor','Saldo','Unidade','Reservado','Disponível','Mínimo'],...state.products.map(p=>[productLabel(p),p.category||'',p.color||'',p.qty,p.unit,activeReservations(p.id),availableQty(p),p.minQty??''])]));
+function downloadCsv(filename,rows){const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');const a=document.createElement('a');const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+
 $('scanFind')?.addEventListener('click',()=>{const code=$('scanCode').value.trim();if(!code)return toast('Digite ou leia um código.');const p=state.products.find(p=>String(p.code||'').trim()===code||String(p.id)===code);$('scanResult').innerHTML=p?`<strong>${esc(productLabel(p))}</strong><br>Saldo: ${fmt(p.qty)} ${esc(p.unit)}<div class="actions"><button class="primary" id="scanGoStock">Abrir estoque</button><button class="secondary" id="scanGoMove">Registrar movimentação</button></div>`:'Nenhum produto encontrado com esse código. Cadastre o código no produto e tente novamente.';$('scanGoStock')?.addEventListener('click',()=>goto('estoque'));$('scanGoMove')?.addEventListener('click',()=>{goto('movimentar');$('moveProduct').value=p.id;});});
 $('scanStart')?.addEventListener('click',async()=>{if(!('BarcodeDetector'in window))return toast('Este navegador não oferece leitura nativa de códigos. Use a busca manual ou um leitor USB/Bluetooth.');try{scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});const v=$('scanVideo');v.srcObject=scannerStream;v.classList.add('video-active');await v.play();const detector=new BarcodeDetector({formats:['qr_code','code_128','ean_13','ean_8','upc_a','upc_e']});const loop=async()=>{if(!scannerStream)return;try{const codes=await detector.detect(v);if(codes.length){$('scanCode').value=codes[0].rawValue;$('scanFind').click();stopScanner();return;}}catch(e){}scannerFrame=requestAnimationFrame(loop);};loop();}catch(e){toast('Não foi possível abrir a câmera. Confira a permissão e use HTTPS.');}});
 function stopScanner(){if(scannerFrame)cancelAnimationFrame(scannerFrame);scannerFrame=null;if(scannerStream)scannerStream.getTracks().forEach(t=>t.stop());scannerStream=null;const v=$('scanVideo');if(v){v.pause();v.srcObject=null;v.classList.remove('video-active');}}
@@ -605,7 +655,7 @@ $('apiExport')?.addEventListener('click',()=> $('exportBtn').click());
 
 
 // === FASE 1: reservas, rastreio físico, previsão e assistente local ===
-function ensureCollections(){state.reservations=Array.isArray(state.reservations)?state.reservations:[];state.packages=Array.isArray(state.packages)?state.packages:[];}
+function ensureCollections(){state.reservations=Array.isArray(state.reservations)?state.reservations:[];state.packages=Array.isArray(state.packages)?state.packages:[];state.workshopStock=Array.isArray(state.workshopStock)?state.workshopStock:[];}
 function activeReservations(productId){ensureCollections();return state.reservations.filter(r=>r.productId===productId&&r.status==='ativa').reduce((n,r)=>n+Number(r.qty||0),0);}
 function availableQty(p){return Math.max(0,(Number(p.qty)||0)-activeReservations(p.id));}
 function availableForOC(p,oc){const normalized=String(oc||'').trim().toLowerCase();const reservedForOthers=(state.reservations||[]).filter(r=>r.productId===p.id&&r.status==='ativa'&&String(r.oc||'').trim().toLowerCase()!==normalized).reduce((n,r)=>n+Number(r.qty||0),0);return Math.max(0,(Number(p.qty)||0)-reservedForOthers);}
@@ -703,8 +753,8 @@ async function init(){
    const saved=remote.state;
    const localBefore=loadState();
    const localSnapshot=JSON.stringify(localBefore);
-   const remoteSnapshot=JSON.stringify({products:Array.isArray(saved.products)?saved.products:[],moves:Array.isArray(saved.moves)?saved.moves:[],cuts:Array.isArray(saved.cuts)?saved.cuts:[],audits:Array.isArray(saved.audits)?saved.audits:[],reservations:Array.isArray(saved.reservations)?saved.reservations:[],packages:Array.isArray(saved.packages)?saved.packages:[]});
-   if((localBefore.products.length||localBefore.moves.length||localBefore.cuts.length||localBefore.audits.length||(localBefore.reservations||[]).length||(localBefore.packages||[]).length)&&localSnapshot!==remoteSnapshot){
+   const remoteSnapshot=JSON.stringify({products:Array.isArray(saved.products)?saved.products:[],moves:Array.isArray(saved.moves)?saved.moves:[],cuts:Array.isArray(saved.cuts)?saved.cuts:[],audits:Array.isArray(saved.audits)?saved.audits:[],reservations:Array.isArray(saved.reservations)?saved.reservations:[],packages:Array.isArray(saved.packages)?saved.packages:[],workshopStock:Array.isArray(saved.workshopStock)?saved.workshopStock:[]});
+   if((localBefore.products.length||localBefore.moves.length||localBefore.cuts.length||localBefore.audits.length||(localBefore.reservations||[]).length||(localBefore.packages||[]).length||(localBefore.workshopStock||[]).length)&&localSnapshot!==remoteSnapshot){
     const backupKey=STORAGE_KEY+'_backup_'+new Date().toISOString().replace(/[:.]/g,'-');
     try{localStorage.setItem(backupKey,localSnapshot);console.warn('Dados locais diferentes do servidor foram preservados em '+backupKey);if(status)status.value='Conectado — backup local preservado';}catch(e){throw new Error('Dados locais diferentes do servidor; não foi possível criar backup local. Sincronização interrompida para proteger os dados.');}
    }
@@ -715,7 +765,7 @@ async function init(){
   }else{
    // Banco vazio: preservar e migrar os dados que já existirem neste navegador.
    const local=loadState();
-   state={products:local.products,moves:local.moves,cuts:local.cuts,audits:local.audits,reservations:local.reservations||[],packages:local.packages||[]};
+   state={products:local.products,moves:local.moves,cuts:local.cuts,audits:local.audits,reservations:local.reservations||[],packages:local.packages||[],workshopStock:local.workshopStock||[]};
    const snapshot=JSON.stringify(state);
    const saveResponse=await fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json','If-Match':String(remoteRevision)},body:snapshot});
    if(!saveResponse.ok)throw new Error('Não foi possível migrar os dados locais (HTTP '+saveResponse.status+').');

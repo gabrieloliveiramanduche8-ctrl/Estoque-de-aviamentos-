@@ -1,0 +1,8 @@
+Estoque de Aviamentos 1.4.1 — auditoria local
+Sintaxe do servidor: PASS
+Sintaxe do JavaScript da interface: PASS
+Testes automatizados: 69 PASS, 0 FAIL
+Regressão: servidor aceita movimentação type=ajuste produzida pelo inventário físico
+Navegador real: NÃO EXECUTADO
+PostgreSQL/Render integrado: NÃO EXECUTADO
+Nota: testes locais não garantem ausência absoluta de bugs.
