@@ -14,7 +14,7 @@ test('rejeita códigos duplicados no backup',()=>assert.strictEqual(ctx.validate
 test('rejeita quantidade inválida em movimentação',()=>assert.strictEqual(ctx.validateImportedBackup({products:[],moves:[{qty:-4}],cuts:[]}).ok,false));
 test('código duplicado também é bloqueado no cadastro',()=>assert(html.includes("String(x.code||'').trim()===p.code")));
 test('conferência usa tolerância numérica para diferenças de ponto flutuante',()=>assert(html.includes('const tolerance=Math.max(0.001,Math.abs(planned)*1e-9)')));
-test('backup exportado identifica a versão 1.4.1',()=>assert(html.includes("version:'1.4.1'")));
+test('backup exportado identifica a versão 1.4.2',()=>assert(html.includes("version:'1.4.2'")));
 test('restauração pede confirmação com quantidades e valida os dados antes',()=>assert(html.includes('const validation=validateImportedBackup(data)')&&html.includes('${data.products.length} produto(s)')));
 test('não altera regras de consumo já cadastradas',()=>{assert(html.includes('amount:total,unit:\'unidades\''));assert(html.includes('const meters=total*1.3'));assert(html.includes('g.qty*.35'));assert(html.includes('total*.4'));});
 test('novas páginas de reservas, embalagens, previsão e assistente existem',()=>{for(const id of ['reservas','embalagens','previsao','assistente'])assert(html.includes('id="page-'+id+'"'));});
@@ -49,8 +49,8 @@ test('previsão trata janela zero como valor padrão seguro',()=>{const r=foreca
 test('previsão considera somente datas válidas e não futuras',()=>assert(html.includes('Number.isFinite(t)&&t<=Date.now()&&t>=since')));
 test('previsão mantém sugestões na unidade cadastrada e sem conversões',()=>assert(html.includes('Sugestão de reposição')&&html.includes('Ela não converte metros, unidades, rolos ou caixas')));
 
-test('envio de corte permite quantidade zero para registrar falta sem baixar saldo',()=>assert(html.includes('line.qty<0')&&html.includes('if(line.qty<=0)continue')&&html.includes('lastDispatch')));
-test('envio parcial não exige igualdade com o cálculo',()=>assert(!html.includes('Math.abs(line.qty-expected)>0.0005')&&html.includes('Quantidade enviada pode ser parcial ou extra')));
+test('envio de corte permite quantidade zero para registrar falta sem baixar saldo',()=>assert(html.includes('line.physicalQty<0')&&html.includes('if(line.qty<=0)continue')&&html.includes('lastDispatch')));
+test('envio parcial não exige igualdade com o cálculo',()=>assert(!html.includes('Math.abs(line.qty-expected)>0.0005')&&html.includes('Envio parcial; faltam')));
 test('saída parcial continua bloqueando quantidade acima do saldo livre',()=>assert(html.includes('if(totalQty>available+1e-9)')));
 test('pendência e sobra são registradas na descrição da movimentação',()=>assert(html.includes('Envio parcial; faltam')&&html.includes('Envio extra de')));
 test('painel inicial inclui gráfico de atividade de entradas e saídas',()=>assert(html.includes('id="movementActivityChart"')&&html.includes('function renderMovementActivityChart()')));
@@ -88,4 +88,10 @@ test('histórico da oficina registra unidade e antes/depois',()=>{const h=worksh
 test('backup rejeita saldo negativo na oficina',()=>{const c={Number,String,Array,Set,Math,JSON};vm.createContext(c);vm.runInContext(extractFunction('validateImportedBackup')+';this.f=validateImportedBackup;',c);assert.strictEqual(c.f({products:[{id:'p1',name:'Cordão',qty:5}],moves:[],cuts:[],workshopStock:[{workshop:'A',productId:'p1',qty:-1,unit:'pacote'}]}).ok,false);});
 test('painel mostra histórico de consumo, envio e devolução',()=>assert(html.includes('id="workshopLedgerHistory"')&&html.includes('Histórico de consumo, envio e devolução')));
 test("servidor aceita ajuste físico",()=>assert(fs.readFileSync("server.js","utf8").includes("['entrada','saida','ajuste'].includes(m.type)")));
+
+test('saída de cordão solicita unidades físicas e converte 1.000 por pacote',()=>{assert(html.includes('Quantidade física a enviar (cordões)')&&html.includes("pu==='pacote'?1000")&&html.includes('physicalToStockQty'))});
+test('saída de elástico solicita rolos físicos e converte 15 por pacote',()=>{assert(html.includes('Quantidade física a enviar (rolos de 25 m)')&&html.includes("pu==='pacote'?15"))});
+test('saída de refletivo solicita rolos físicos e converte 20 por caixa',()=>{assert(html.includes('Quantidade física a enviar (rolos de 50 m)')&&html.includes("pu==='caixa'||pu==='pacote'?20"))});
+test('baixa de aviamento especial exige quantidade física inteira',()=>{assert(html.includes('!Number.isInteger(line.physicalQty)'))});
+test('histórico guarda quantidade física enviada separada da baixa equivalente',()=>{assert(html.includes('physicalSent:line.physicalQty')&&html.includes('dispatchUnit:line.dispatchUnit'))});
 console.log(`FINAL RESULT: ${pass} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;

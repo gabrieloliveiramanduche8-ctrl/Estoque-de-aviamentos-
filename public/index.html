@@ -670,17 +670,47 @@ function stockWithdrawalQty(item, product){
  const factor=stockUnitFactor(product,item.unit);
  return factor>0?amount/factor:0;
 }
+
+function dispatchSpec(item, product){
+ const name=norm(item.name), pu=norm(product.unit||'unidade');
+ if(name==='cordao'){
+  const perStock=pu==='pacote'?1000:pu==='caixa'?(Number(product.packSize)||0):pu==='unidade'?1:0;
+  if(perStock>0)return {label:'Quantidade física a enviar (cordões)',unit:'cordões',perStock,required:Math.ceil(Number(item.amount)||0),physicalPerCalculated:1};
+ }
+ if(name==='elastic'||name==='elastico'){
+  const rolls=Math.ceil((Number(item.amount)||0)/25);
+  const perStock=pu==='pacote'?15:pu==='caixa'?(Number(product.packSize)||0):pu==='rolo'||pu==='unidade'?1:pu==='metro'?1/25:0;
+  if(perStock>0)return {label:'Quantidade física a enviar (rolos de 25 m)',unit:'rolos',perStock,required:rolls,physicalPerCalculated:1/25};
+ }
+ if(name==='refletivo'){
+  const rolls=Math.ceil((Number(item.amount)||0)/50);
+  const perStock=pu==='caixa'||pu==='pacote'?20:pu==='rolo'||pu==='unidade'?1:pu==='metro'?1/50:0;
+  if(perStock>0)return {label:'Quantidade física a enviar (rolos de 50 m)',unit:'rolos',perStock,required:rolls,physicalPerCalculated:1/50};
+ }
+ return null;
+}
+function physicalToStockQty(item, product, physicalQty){
+ const spec=dispatchSpec(item,product);
+ if(!spec)return Number(physicalQty)||0;
+ return (Number(physicalQty)||0)/spec.perStock;
+}
+function stockToPhysicalQty(item, product, stockQty){
+ const spec=dispatchSpec(item,product);
+ if(!spec)return Number(stockQty)||0;
+ return (Number(stockQty)||0)*spec.perStock;
+}
+
 function updateBulkRow(index){
  const select=$(`[data-bulk-product="${index}"]`), qty=$(`[data-bulk-qty="${index}"]`), hint=$(`[data-bulk-conversion="${index}"]`);
  if(!select||!qty||!hint||!currentCalc)return;
  const item=currentCalc.items[index], product=state.products.find(p=>p.id===select.value);
  if(!product){hint.textContent='Selecione um produto compatível com a unidade calculada.';return;}
- const factor=stockUnitFactor(product,item.unit);
- if(!(factor>0)){hint.textContent=`Unidade incompatível: o cálculo está em ${item.unit}, mas o estoque está em ${product.unit}. Informe o conteúdo por pacote/caixa ou cadastre uma unidade compatível.`;qty.value='0';return;}
- const converted=stockWithdrawalQty(item,product);
- qty.value=converted.toFixed(3);
- const breakdown=packagingBreakdown(item,product);
- hint.textContent=`Conversão: ${fmt(item.amount)} ${item.unit} = ${fmt(converted)} ${product.unit} (1 ${product.unit} = ${fmt(factor)} ${item.unit}).`+(breakdown?' '+breakdown:'');
+ const factor=stockUnitFactor(product,item.unit), spec=dispatchSpec(item,product);
+ if(!(factor>0)){hint.textContent=`Unidade incompatível: o cálculo está em ${item.unit}, mas o estoque está em ${product.unit}. Confira a unidade/conteúdo cadastrado.`;qty.value='0';return;}
+ const stockDefault=item.requiresManual?0:stockWithdrawalQty(item,product);
+ const defaultQty=spec?Math.ceil(stockToPhysicalQty(item,product,stockDefault)-1e-9):stockDefault;
+ qty.value=defaultQty.toFixed(3);
+ hint.textContent=spec?`Necessidade física estimada: ${fmt(spec.required)} ${spec.unit}. 1 ${product.unit} equivale a ${fmt(spec.perStock)} ${spec.unit}. A quantidade digitada será convertida para a unidade do estoque; embalagens abertas e sobras devem ser conferidas fisicamente.`:`Conversão: ${fmt(item.amount)} ${item.unit} = ${fmt(defaultQty)} ${product.unit}. ${packagingBreakdown(item,product)}`;
 }
 function openBulkIssue(){
  if(!currentCalc)return;
@@ -697,8 +727,13 @@ function openBulkIssue(){
   const options=compatible.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(productLabel(p))} — saldo ${fmt(p.qty)}</option>`).join('');
   const selectedProduct=products.find(p=>p.id===selected);
   const factor=selectedProduct?stockUnitFactor(selectedProduct,item.unit):1;
-  const defaultQty=selectedProduct&&factor>0&&!item.requiresManual?stockWithdrawalQty(item,selectedProduct):0;
-  return `<div class="card bulk-line" style="margin-bottom:10px" data-bulk-line="${index}"><div class="fieldgrid"><div class="field"><label>Aviamento calculado</label><input readonly value="${esc(item.name)}"></div><div class="field"><label>Necessidade calculada</label><input readonly value="${fmt(item.amount)} ${esc(item.unit)}"></div><div class="field"><label>Produto do estoque</label><select data-bulk-product="${index}"><option value="">${compatible.length?'Selecione o produto':'Nenhum produto compatível cadastrado'}</option>${options}</select></div><div class="field"><label>Quantidade a retirar (unidade do estoque)</label><input data-bulk-qty="${index}" type="number" min="0" step="0.001" value="${defaultQty.toFixed(3)}"></div><div class="field full"><small class="muted" data-bulk-conversion="${index}">${item.requiresManual?'Consumo não definido: informe a quantidade manualmente e selecione o produto correto.':(selectedProduct&&factor>0?`Conversão: ${fmt(item.amount)} ${esc(item.unit)} = ${fmt(defaultQty)} ${esc(selectedProduct.unit)}. ${esc(packagingBreakdown(item,selectedProduct))}`:'Selecione um produto compatível com a unidade calculada.')}</small></div></div></div>`;
+  const spec=selectedProduct?dispatchSpec(item,selectedProduct):null;
+  const stockDefault=selectedProduct&&factor>0&&!item.requiresManual?stockWithdrawalQty(item,selectedProduct):0;
+  const defaultQty=spec?Math.ceil(stockToPhysicalQty(item,selectedProduct,stockDefault)-1e-9):stockDefault;
+  const quantityLabel=spec?spec.label:'Quantidade a retirar (unidade do estoque)';
+  const quantityStep=spec?'1':'0.001';
+  const initialHint=item.requiresManual?'Consumo não definido: informe a quantidade manualmente.':(selectedProduct&&factor>0?(spec?`Necessidade física estimada: ${fmt(spec.required)} ${spec.unit}. A retirada será convertida para ${esc(selectedProduct.unit)} no estoque.`:`Conversão: ${fmt(item.amount)} ${esc(item.unit)} = ${fmt(defaultQty)} ${esc(selectedProduct.unit)}. ${esc(packagingBreakdown(item,selectedProduct))}`):'Selecione um produto compatível com a unidade calculada.');
+  return `<div class="card bulk-line" style="margin-bottom:10px" data-bulk-line="${index}"><div class="fieldgrid"><div class="field"><label>Aviamento calculado</label><input readonly value="${esc(item.name)}"></div><div class="field"><label>Necessidade calculada</label><input readonly value="${fmt(item.amount)} ${esc(item.unit)}"></div><div class="field"><label>Produto do estoque</label><select data-bulk-product="${index}"><option value="">${compatible.length?'Selecione o produto':'Nenhum produto compatível cadastrado'}</option>${options}</select></div><div class="field"><label>${quantityLabel}</label><input data-bulk-qty="${index}" type="number" min="0" step="${quantityStep}" value="${spec?defaultQty.toFixed(0):defaultQty.toFixed(3)}"></div><div class="field full"><small class="muted" data-bulk-conversion="${index}">${initialHint}</small></div></div></div>`;
  }).join('');
  $('bulkIssueItems').innerHTML=rows||'<div class="empty">Este cálculo não possui aviamentos para enviar.</div>';
  (currentCalc.items||[]).forEach((item,index)=>{const sel=$(`[data-bulk-product="${index}"]`);if(sel)sel.addEventListener('change',()=>updateBulkRow(index));});
@@ -714,18 +749,21 @@ $('confirmBulkIssue').addEventListener('click',()=>{
  if(!cutNumber)return toast('Informe o número do corte antes de registrar uma saída vinculada.');
  if(!state.cuts.some(c=>c.id===currentCalc.id))return toast('Salve o cálculo antes de registrar a saída. Isso permite conferir calculado × enviado no histórico.');
  const workshop=$('bulkWorkshop').value.trim();if(!workshop)return toast('Informe o nome da oficina.');
- const lines=(currentCalc.items||[]).map((item,index)=>({item,index,productId:$(`[data-bulk-product="${index}"]`)?.value||'',qty:Number($(`[data-bulk-qty="${index}"]`)?.value)}));
+ const lines=(currentCalc.items||[]).map((item,index)=>({item,index,productId:$(`[data-bulk-product="${index}"]`)?.value||'',physicalQty:Number($(`[data-bulk-qty="${index}"]`)?.value)}));
  if(!lines.length)return toast('Este corte não possui aviamentos para enviar.');
- const incomplete=lines.find(line=>!line.productId||!Number.isFinite(line.qty)||line.qty<0);
+ const incomplete=lines.find(line=>!line.productId||!Number.isFinite(line.physicalQty)||line.physicalQty<0);
  if(incomplete)return toast(`Envio cancelado: preencha produto e quantidade para todos os aviamentos, incluindo ${incomplete.item.name}. Nenhuma saída foi registrada.`);
  const totalsByProduct=new Map();
  for(const line of lines){
   const p=state.products.find(x=>x.id===line.productId);if(!p)return toast(`Selecione o produto do estoque para ${line.item.name}.`);
-  if(!Number.isFinite(line.qty)||line.qty<0)return toast(`Confira a quantidade de ${line.item.name}. Informe zero se não houver material para enviar.`);
-  const factor=stockUnitFactor(p,line.item.unit);if(!(factor>0))return toast(`Unidade incompatível para ${line.item.name}. Cadastre conteúdo por pacote/caixa ou escolha produto em ${line.item.unit}.`);
+  if(!Number.isFinite(line.physicalQty)||line.physicalQty<0)return toast(`Confira a quantidade de ${line.item.name}. Informe zero se não houver material para enviar.`);
+  if(dispatchSpec(line.item,p)&&!Number.isInteger(line.physicalQty))return toast(`A quantidade física de ${line.item.name} deve ser um número inteiro de ${dispatchSpec(line.item,p).unit}.`);
+  const factor=stockUnitFactor(p,line.item.unit);if(!(factor>0))return toast(`Unidade incompatível para ${line.item.name}. Confira a unidade/conteúdo cadastrado.`);
+  const spec=dispatchSpec(line.item,p);
+  line.qty=spec?physicalToStockQty(line.item,p,line.physicalQty):line.physicalQty;
   const expected=line.item.requiresManual?null:stockWithdrawalQty(line.item,p);
-  // Quantidade enviada pode ser parcial ou extra. A necessidade calculada é referência; o saldo disponível continua sendo respeitado.
-  const baseQty=line.qty*factor;line.baseQty=baseQty;line.factor=factor;line.expectedQty=expected;line.missingQty=expected===null?null:Math.max(0,expected-line.qty);line.extraQty=expected===null?null:Math.max(0,line.qty-expected);
+  const expectedPhysical=spec?spec.required:(expected===null?null:expected);
+  line.baseQty=line.qty*factor;line.factor=factor;line.expectedQty=expected;line.expectedPhysical=expectedPhysical;line.missingQty=expectedPhysical===null?null:Math.max(0,expectedPhysical-line.physicalQty);line.extraQty=expectedPhysical===null?null:Math.max(0,line.physicalQty-expectedPhysical);line.dispatchUnit=spec?.unit||p.unit;
   totalsByProduct.set(p.id,(totalsByProduct.get(p.id)||0)+line.qty);
  }
  for(const [productId,totalQty] of totalsByProduct){const p=state.products.find(x=>x.id===productId);const available=currentCalc.oc?availableForOC(p,currentCalc.oc):availableQty(p);if(totalQty>available+1e-9)return toast(`Saldo livre insuficiente para ${p.name}. Você informou ${fmt(totalQty)} ${p.unit}, mas há ${fmt(available)} ${p.unit} disponíveis. Reduza a quantidade para registrar uma saída parcial.`);}
@@ -736,18 +774,18 @@ $('confirmBulkIssue').addEventListener('click',()=>{
  for(const line of lines){
   const p=state.products.find(x=>x.id===line.productId),before=Number(p.qty)||0;
   const expected=line.expectedQty;
-  dispatchLines.push({productId:p.id,productName:productLabel(p),unit:p.unit,required:expected, sent:line.qty, missing:line.missingQty, extra:line.extraQty, workshop, oc:currentCalc.oc||'', cut:currentCalc.number||'', date:now});
+  dispatchLines.push({productId:p.id,productName:productLabel(p),unit:p.unit,dispatchUnit:line.dispatchUnit,physicalSent:line.physicalQty,required:expected,requiredPhysical:line.expectedPhysical,sent:line.qty,missing:line.missingQty,extra:line.extraQty,workshop,oc:currentCalc.oc||'',cut:currentCalc.number||'',date:now});
   if(line.qty<=0)continue;
   p.qty=Number((before-line.qty).toFixed(3));
   if(workshop&&line.qty>0){const wb=workshopBalance(workshop,p.id);setWorkshopBalance(workshop,p.id,wb+line.qty,{action:'envio do estoque central',qty:line.qty,cut:currentCalc.number||'',notes:`OC ${currentCalc.oc||'—'}`,before:wb,delta:line.qty});}
-  const shortage=line.missingQty>0?`Envio parcial; faltam ${fmt(line.missingQty)} ${p.unit}.`:'';
-  const extra=line.extraQty>0?` Envio extra de ${fmt(line.extraQty)} ${p.unit}; conferir sobra na oficina.`:'';
+  const shortage=line.missingQty>0?`Envio parcial; faltam ${fmt(line.missingQty)} ${line.dispatchUnit}.`:'';
+  const extra=line.extraQty>0?` Envio extra de ${fmt(line.extraQty)} ${line.dispatchUnit}; conferir sobra na oficina.`:'';
   state.moves.push({id:uid(),date:now,type:'saida',productId:p.id,productName:productLabel(p),qty:line.qty,unit:p.unit,baseQty:line.baseQty,baseUnit:line.item.unit,workshop,oc:currentCalc.oc||'',cut:currentCalc.number||'',referenceId:currentCalc.referenceId||'',referenceName:currentCalc.referenceName||'',notes:`Envio de corte. ${shortage}${extra}`.trim(),balanceBefore:before,balanceAfter:Number(p.qty),actor:'Local user'});
  }
  currentCalc.lastDispatch={date:now,workshop,oc:currentCalc.oc||'',cut:currentCalc.number||'',lines:dispatchLines};
  const savedCut=state.cuts.find(c=>c.id===currentCalc.id);if(savedCut)savedCut.lastDispatch=currentCalc.lastDispatch;
  if(currentCalc.oc){for(const [productId,totalQty] of totalsByProduct)fulfillReservationsForOC(productId,currentCalc.oc,totalQty);}
- persist();renderAll();$('bulkIssuePanel').classList.add('hidden');bulkIssueInProgress=false;const pending=lines.filter(line=>line.missingQty>0);toast(pending.length?`Envio registrado para ${workshop}. ${pending.length} item(ns) ficaram pendentes por falta de material; consulte o corte salvo.`:`Envio registrado para ${workshop}. Confira as quantidades enviadas e eventuais sobras.`);
+ persist();renderAll();$('bulkIssuePanel').classList.add('hidden');bulkIssueInProgress=false;const pending=lines.filter(line=>line.missingQty>0);toast(pending.length?`Envio registrado para ${workshop}. ${pending.length} item(ns) ficaram pendentes por falta de material; consulte o corte salvo.`:`Envio registrado para ${workshop}. Confira as quantidades físicas enviadas e as sobras.`);
 });
 $('moveForm').addEventListener('submit',e=>{
  e.preventDefault();const p=state.products.find(x=>x.id===$('moveProduct').value);if(!p)return toast('Selecione um produto.');
@@ -843,7 +881,7 @@ $('interpretVoice').addEventListener('click',()=>{
  toast('Não consegui interpretar o comando. Tente “500 unidades de zíper preto”.');
 });
 $('exportBtn').addEventListener('click',()=>{
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.4.1',...state},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.4.2',...state},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='backup-estoque-aviamentos.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  toast('Backup exportado. Guarde o arquivo em local seguro.');
 });
