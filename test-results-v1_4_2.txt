@@ -1,0 +1,77 @@
+PASS aceita backup válido com campos opcionais ausentes
+PASS rejeita JSON que não seja objeto
+PASS rejeita listas principais ausentes
+PASS rejeita registro nulo em lista
+PASS rejeita produto sem nome
+PASS rejeita saldo negativo ou não numérico
+PASS rejeita conteúdo de embalagem inválido
+PASS rejeita códigos duplicados no backup
+PASS rejeita quantidade inválida em movimentação
+PASS código duplicado também é bloqueado no cadastro
+PASS conferência usa tolerância numérica para diferenças de ponto flutuante
+PASS backup exportado identifica a versão 1.4.2
+PASS restauração pede confirmação com quantidades e valida os dados antes
+PASS não altera regras de consumo já cadastradas
+PASS novas páginas de reservas, embalagens, previsão e assistente existem
+PASS reservas não baixam estoque físico
+PASS bloqueia reserva acima do disponível
+PASS código de embalagem é único
+PASS rastreio de embalagem não altera saldo geral
+PASS previsão usa somente saídas registradas na unidade do produto
+PASS assistente identifica explicitamente que não é IA generativa
+PASS estado antigo continua aceito sem arrays novos
+PASS backup valida reservas e códigos de embalagem antes de restaurar
+PASS backup restaura reservas e embalagens sem descartá-las
+PASS saídas comuns respeitam o saldo livre após reservas
+PASS migração protege reservas e embalagens locais antes de sincronizar
+PASS OCR de ficha reconhece OC, corte, pares e grade
+PASS OCR não inventa grade quando ela não está no texto
+PASS OCR não aplica nem salva automaticamente
+PASS envio de corte considera reservas de outras OCs e permite a própria OC
+PASS envio para oficina registra OC e consome reserva correspondente
+PASS reserva mantém histórico de quantidade consumida
+PASS saída por foto/voz respeita reservas ativas
+PASS saídas por foto/voz somam itens repetidos antes de confirmar
+PASS backup valida vínculo de reservas e embalagens com produtos existentes
+PASS previsão calcula média diária e cobertura após reservas
+PASS previsão nunca sugere quantidade negativa
+PASS previsão respeita prazo e margem configurados
+PASS previsão trata janela zero como valor padrão seguro
+PASS previsão considera somente datas válidas e não futuras
+PASS previsão mantém sugestões na unidade cadastrada e sem conversões
+PASS envio de corte permite quantidade zero para registrar falta sem baixar saldo
+PASS envio parcial não exige igualdade com o cálculo
+PASS saída parcial continua bloqueando quantidade acima do saldo livre
+PASS pendência e sobra são registradas na descrição da movimentação
+PASS painel inicial inclui gráfico de atividade de entradas e saídas
+PASS gráfico de atividade conta registros sem somar unidades incompatíveis
+RESULT: 47 PASS, 0 FAIL
+PASS cordão calcula 1 por peça e pacote de 1.000
+PASS elástico é baixado por rolos/pacotes, com sobras do pacote aberto
+PASS refletivo considera 20 rolos por caixa e 50 m por rolo
+PASS botão e courinho ficam associados a Acabamento nos produtos iniciais
+PASS cálculo individual pode ser apagado com confirmação e preserva movimentos
+PASS apagar todos os cálculos tem confirmação e preserva estoque
+RESULT: 53 PASS, 0 FAIL
+PASS dashboard possui filtro de período de 7, 30 e 90 dias
+PASS dashboard compara saldos de produtos sem misturar unidades
+PASS histórico de movimentações tem busca, tipo e período
+PASS controle de oficina permite consumo, devolução e saldo conhecido
+PASS envios novos aumentam saldo registrado da oficina
+PASS consumo da oficina não altera estoque central
+PASS devolução da oficina gera entrada no estoque central
+PASS saldo da oficina é validado na restauração do backup
+PASS relatórios exibem estoque atual e exportação CSV
+PASS saldos da oficina são exportáveis em CSV
+PASS backup de estado inclui a nova coleção workshopStock
+PASS saldo da oficina inicia no zero e aceita saldo conferido
+PASS histórico da oficina registra unidade e antes/depois
+PASS backup rejeita saldo negativo na oficina
+PASS painel mostra histórico de consumo, envio e devolução
+PASS servidor aceita ajuste físico
+PASS saída de cordão solicita unidades físicas e converte 1.000 por pacote
+PASS saída de elástico solicita rolos físicos e converte 15 por pacote
+PASS saída de refletivo solicita rolos físicos e converte 20 por caixa
+PASS baixa de aviamento especial exige quantidade física inteira
+PASS histórico guarda quantidade física enviada separada da baixa equivalente
+FINAL RESULT: 74 PASS, 0 FAIL
