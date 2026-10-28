@@ -14,7 +14,7 @@ test('rejeita códigos duplicados no backup',()=>assert.strictEqual(ctx.validate
 test('rejeita quantidade inválida em movimentação',()=>assert.strictEqual(ctx.validateImportedBackup({products:[],moves:[{qty:-4}],cuts:[]}).ok,false));
 test('código duplicado também é bloqueado no cadastro',()=>assert(html.includes("String(x.code||'').trim()===p.code")));
 test('conferência usa tolerância numérica para diferenças de ponto flutuante',()=>assert(html.includes('const tolerance=Math.max(0.001,Math.abs(planned)*1e-9)')));
-test('backup exportado identifica a versão 1.4.2',()=>assert(html.includes("version:'1.4.2'")));
+test('backup exportado identifica a versão 1.4.4',()=>assert(html.includes("version:'1.4.4'")));
 test('restauração pede confirmação com quantidades e valida os dados antes',()=>assert(html.includes('const validation=validateImportedBackup(data)')&&html.includes('${data.products.length} produto(s)')));
 test('não altera regras de consumo já cadastradas',()=>{assert(html.includes('amount:total,unit:\'unidades\''));assert(html.includes('const meters=total*1.3'));assert(html.includes('g.qty*.35'));assert(html.includes('total*.4'));});
 test('novas páginas de reservas, embalagens, previsão e assistente existem',()=>{for(const id of ['reservas','embalagens','previsao','assistente'])assert(html.includes('id="page-'+id+'"'));});
@@ -94,4 +94,14 @@ test('saída de elástico solicita rolos físicos e converte 15 por pacote',()=>
 test('saída de refletivo solicita rolos físicos e converte 20 por caixa',()=>{assert(html.includes('Quantidade física a enviar (rolos de 50 m)')&&html.includes("pu==='caixa'||pu==='pacote'?20"))});
 test('baixa de aviamento especial exige quantidade física inteira',()=>{assert(html.includes('!Number.isInteger(line.physicalQty)'))});
 test('histórico guarda quantidade física enviada separada da baixa equivalente',()=>{assert(html.includes('physicalSent:line.physicalQty')&&html.includes('dispatchUnit:line.dispatchUnit'))});
+test('trocar oficina recalcula todas as quantidades sugeridas',()=>assert(html.includes("$('bulkWorkshop').addEventListener('change',refreshBulkRowsForWorkshop)")&&html.includes('function refreshBulkRowsForWorkshop()')));
+test('envio parcial permite deixar aviamento sem produto cadastrado com quantidade zero',()=>assert(html.includes("(!line.productId&&line.physicalQty>0)")&&html.includes("if(line.skipped){dispatchLines.push")));
+test('aviamento sem material fica registrado como pendência sem baixa no estoque',()=>assert(html.includes("reason:'Sem produto cadastrado/sem material; pendente'")&&html.includes('line.missingQty=Math.max(0,requiredPhysical)')));
+
 console.log(`FINAL RESULT: ${pass} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;
+
+// Regression checks for workshop dispatch logic
+{ const html=fs.readFileSync('index.html','utf8');
+  test('saída desconta saldo físico já existente na oficina',()=>assert(html.includes('function netDispatchRequirement') && html.includes('gross-already')));
+  test('itens com nome aproximado não escolhem automaticamente cor/variação',()=>assert(html.includes('const exactMatch=products.find(p=>norm(p.name)===itemName)')));
+}

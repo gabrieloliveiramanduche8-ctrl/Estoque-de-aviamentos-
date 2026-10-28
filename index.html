@@ -111,7 +111,7 @@ html[data-theme="light"] .productrow small{color:#64748b}
 
 <div class="app">
 <header class="topbar">
- <div class="brand"><div class="logo">📦</div><div><h1>ESTOQUE DE AVIAMENTOS</h1><p>Controle de materiais, cortes e oficinas · v1.4.0</p></div></div>
+ <div class="brand"><div class="logo">📦</div><div><h1>ESTOQUE DE AVIAMENTOS</h1><p>Controle de materiais, cortes e oficinas · v1.4.4</p></div></div>
  <div class="top-actions"><button id="themeToggle" type="button" aria-label="Alternar tema">☀️ Tema claro</button><button id="voiceTop" title="Cadastrar por voz">🎙️ Voz</button><button id="photoTop">📷 Ler lista</button><button id="exportBtn">⬇ Exportar backup</button><button id="importBtn" type="button">↥ Restaurar backup</button><input id="backupFile" type="file" accept="application/json,.json" hidden></div>
 </header>
 <div class="layout">
@@ -700,6 +700,20 @@ function stockToPhysicalQty(item, product, stockQty){
  return (Number(stockQty)||0)*spec.perStock;
 }
 
+function workshopPhysicalBalance(workshop, product, item){
+ const stockQty=workshopBalance(workshop,product.id);
+ const spec=dispatchSpec(item,product);
+ return spec?Math.max(0,stockQty*spec.perStock):stockQty;
+}
+function netDispatchRequirement(item, product, workshop){
+ const spec=dispatchSpec(item,product);
+ if(!spec)return {required:stockWithdrawalQty(item,product),physical:null,spec:null,availableInWorkshop:0};
+ const gross=spec.required;
+ const already=workshopPhysicalBalance(workshop,product,item);
+ const physical=Math.max(0,gross-already);
+ const required=physical/spec.perStock;
+ return {required,physical,spec,availableInWorkshop:already,gross};
+}
 function updateBulkRow(index){
  const select=$(`[data-bulk-product="${index}"]`), qty=$(`[data-bulk-qty="${index}"]`), hint=$(`[data-bulk-conversion="${index}"]`);
  if(!select||!qty||!hint||!currentCalc)return;
@@ -707,10 +721,11 @@ function updateBulkRow(index){
  if(!product){hint.textContent='Selecione um produto compatível com a unidade calculada.';return;}
  const factor=stockUnitFactor(product,item.unit), spec=dispatchSpec(item,product);
  if(!(factor>0)){hint.textContent=`Unidade incompatível: o cálculo está em ${item.unit}, mas o estoque está em ${product.unit}. Confira a unidade/conteúdo cadastrado.`;qty.value='0';return;}
- const stockDefault=item.requiresManual?0:stockWithdrawalQty(item,product);
+ const net=item.requiresManual?{required:0,physical:null,spec:null,availableInWorkshop:0}:netDispatchRequirement(item,product,$('bulkWorkshop').value.trim());
+ const stockDefault=net.required;
  const defaultQty=spec?Math.ceil(stockToPhysicalQty(item,product,stockDefault)-1e-9):stockDefault;
  qty.value=defaultQty.toFixed(3);
- hint.textContent=spec?`Necessidade física estimada: ${fmt(spec.required)} ${spec.unit}. 1 ${product.unit} equivale a ${fmt(spec.perStock)} ${spec.unit}. A quantidade digitada será convertida para a unidade do estoque; embalagens abertas e sobras devem ser conferidas fisicamente.`:`Conversão: ${fmt(item.amount)} ${item.unit} = ${fmt(defaultQty)} ${product.unit}. ${packagingBreakdown(item,product)}`;
+ hint.textContent=spec?`Necessidade bruta: ${fmt(spec.required)} ${spec.unit}; saldo já registrado nesta oficina: ${fmt(net.availableInWorkshop)} ${spec.unit}; enviar agora: ${fmt(net.physical)} ${spec.unit}. 1 ${product.unit} equivale a ${fmt(spec.perStock)} ${spec.unit}.`:`Conversão: ${fmt(item.amount)} ${item.unit} = ${fmt(defaultQty)} ${product.unit}. ${packagingBreakdown(item,product)}`;
 }
 function openBulkIssue(){
  if(!currentCalc)return;
@@ -720,19 +735,22 @@ function openBulkIssue(){
  const rows=(currentCalc.items||[]).map((item,index)=>{
   const itemName=norm(item.name);
   let matches=products.filter(p=>norm(p.name)===itemName);
-  // Zíper: não selecionar uma cor automaticamente. A pessoa deve escolher a cor correta.
+  if(!matches.length && ['elastico','cordao','refletivo','cos'].includes(itemName)) matches=products.filter(p=>norm(p.name).includes(itemName));
+  // Zíper e itens com cor/variação: não escolher automaticamente quando só há correspondência aproximada.
   if(!matches.length && itemName.startsWith('etiqueta de composicao')) matches=products.filter(p=>norm(p.name)===itemName);
-  const selected=(itemName==='ziper 15 cm'?'':(matches[0]?.id||''));
+  const exactMatch=products.find(p=>norm(p.name)===itemName);
+  const selected=(itemName==='ziper 15 cm'?'':(exactMatch?.id||''));
   const compatible=products.filter(p=>matches.some(m=>m.id===p.id));
   const options=compatible.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(productLabel(p))} — saldo ${fmt(p.qty)}</option>`).join('');
   const selectedProduct=products.find(p=>p.id===selected);
   const factor=selectedProduct?stockUnitFactor(selectedProduct,item.unit):1;
   const spec=selectedProduct?dispatchSpec(item,selectedProduct):null;
-  const stockDefault=selectedProduct&&factor>0&&!item.requiresManual?stockWithdrawalQty(item,selectedProduct):0;
+  const net=selectedProduct&&factor>0&&!item.requiresManual?netDispatchRequirement(item,selectedProduct,$('bulkWorkshop').value.trim()):{required:0,physical:null,availableInWorkshop:0};
+  const stockDefault=net.required||0;
   const defaultQty=spec?Math.ceil(stockToPhysicalQty(item,selectedProduct,stockDefault)-1e-9):stockDefault;
   const quantityLabel=spec?spec.label:'Quantidade a retirar (unidade do estoque)';
   const quantityStep=spec?'1':'0.001';
-  const initialHint=item.requiresManual?'Consumo não definido: informe a quantidade manualmente.':(selectedProduct&&factor>0?(spec?`Necessidade física estimada: ${fmt(spec.required)} ${spec.unit}. A retirada será convertida para ${esc(selectedProduct.unit)} no estoque.`:`Conversão: ${fmt(item.amount)} ${esc(item.unit)} = ${fmt(defaultQty)} ${esc(selectedProduct.unit)}. ${esc(packagingBreakdown(item,selectedProduct))}`):'Selecione um produto compatível com a unidade calculada.');
+  const initialHint=item.requiresManual?'Consumo não definido: informe a quantidade manualmente.':(selectedProduct&&factor>0?(spec?`Necessidade bruta: ${fmt(spec.required)} ${spec.unit}; saldo já na oficina: ${fmt(net.availableInWorkshop||0)} ${spec.unit}; enviar agora: ${fmt(net.physical||0)} ${spec.unit}. A retirada será convertida para ${esc(selectedProduct.unit)} no estoque.`:`Conversão: ${fmt(item.amount)} ${esc(item.unit)} = ${fmt(defaultQty)} ${esc(selectedProduct.unit)}. ${esc(packagingBreakdown(item,selectedProduct))}`):'Selecione um produto compatível com a unidade calculada.');
   return `<div class="card bulk-line" style="margin-bottom:10px" data-bulk-line="${index}"><div class="fieldgrid"><div class="field"><label>Aviamento calculado</label><input readonly value="${esc(item.name)}"></div><div class="field"><label>Necessidade calculada</label><input readonly value="${fmt(item.amount)} ${esc(item.unit)}"></div><div class="field"><label>Produto do estoque</label><select data-bulk-product="${index}"><option value="">${compatible.length?'Selecione o produto':'Nenhum produto compatível cadastrado'}</option>${options}</select></div><div class="field"><label>${quantityLabel}</label><input data-bulk-qty="${index}" type="number" min="0" step="${quantityStep}" value="${spec?defaultQty.toFixed(0):defaultQty.toFixed(3)}"></div><div class="field full"><small class="muted" data-bulk-conversion="${index}">${initialHint}</small></div></div></div>`;
  }).join('');
  $('bulkIssueItems').innerHTML=rows||'<div class="empty">Este cálculo não possui aviamentos para enviar.</div>';
@@ -740,6 +758,9 @@ function openBulkIssue(){
  panel.scrollIntoView({behavior:'smooth',block:'start'});
 }
 $('cutToIssue').addEventListener('click',openBulkIssue);
+// Recalcula todas as linhas ao trocar/editar a oficina, para nunca reutilizar o saldo de outra oficina.
+function refreshBulkRowsForWorkshop(){(currentCalc?.items||[]).forEach((_,index)=>updateBulkRow(index));}
+$('bulkWorkshop').addEventListener('change',refreshBulkRowsForWorkshop);
 $('cancelBulkIssue').addEventListener('click',()=>$('bulkIssuePanel').classList.add('hidden'));
 let bulkIssueInProgress=false;
 $('confirmBulkIssue').addEventListener('click',()=>{
@@ -749,20 +770,32 @@ $('confirmBulkIssue').addEventListener('click',()=>{
  if(!cutNumber)return toast('Informe o número do corte antes de registrar uma saída vinculada.');
  if(!state.cuts.some(c=>c.id===currentCalc.id))return toast('Salve o cálculo antes de registrar a saída. Isso permite conferir calculado × enviado no histórico.');
  const workshop=$('bulkWorkshop').value.trim();if(!workshop)return toast('Informe o nome da oficina.');
- const lines=(currentCalc.items||[]).map((item,index)=>({item,index,productId:$(`[data-bulk-product="${index}"]`)?.value||'',physicalQty:Number($(`[data-bulk-qty="${index}"]`)?.value)}));
+ const lines=(currentCalc.items||[]).map((item,index)=>{const rawQty=$(`[data-bulk-qty="${index}"]`)?.value;return {item,index,productId:$(`[data-bulk-product="${index}"]`)?.value||'',physicalQty:rawQty===''||rawQty==null?0:Number(rawQty)}});
  if(!lines.length)return toast('Este corte não possui aviamentos para enviar.');
- const incomplete=lines.find(line=>!line.productId||!Number.isFinite(line.physicalQty)||line.physicalQty<0);
- if(incomplete)return toast(`Envio cancelado: preencha produto e quantidade para todos os aviamentos, incluindo ${incomplete.item.name}. Nenhuma saída foi registrada.`);
+ const incomplete=lines.find(line=>!Number.isFinite(line.physicalQty)||line.physicalQty<0||(!line.productId&&line.physicalQty>0));
+ if(incomplete)return toast(`Confira ${incomplete.item.name}: selecione o produto se for enviar uma quantidade maior que zero. Se não houver material, deixe sem produto e informe zero.`);
  const totalsByProduct=new Map();
  for(const line of lines){
-  const p=state.products.find(x=>x.id===line.productId);if(!p)return toast(`Selecione o produto do estoque para ${line.item.name}.`);
+  const p=state.products.find(x=>x.id===line.productId);
+  // Permite registrar corte parcial mesmo quando um aviamento não existe no estoque cadastrado.
+  if(!p){
+   if(line.physicalQty>0)return toast(`Selecione o produto do estoque para ${line.item.name}, ou informe zero se não houver material.`);
+   const name=norm(line.item.name), amount=Number(line.item.amount)||0;
+   let requiredPhysical=amount, dispatchUnit=line.item.unit||'unidade';
+   if(name==='cordao'){requiredPhysical=Math.ceil(amount);dispatchUnit='cordões';}
+   else if(name==='elastico'||name==='elastic'){requiredPhysical=Math.ceil(amount/25);dispatchUnit='rolos de 25 m';}
+   else if(name==='refletivo'){requiredPhysical=Math.ceil(amount/50);dispatchUnit='rolos de 50 m';}
+   line.qty=0;line.baseQty=0;line.factor=0;line.expectedQty=null;line.expectedPhysical=requiredPhysical;line.missingQty=Math.max(0,requiredPhysical);line.extraQty=0;line.dispatchUnit=dispatchUnit;line.skipped=true;
+   continue;
+  }
   if(!Number.isFinite(line.physicalQty)||line.physicalQty<0)return toast(`Confira a quantidade de ${line.item.name}. Informe zero se não houver material para enviar.`);
   if(dispatchSpec(line.item,p)&&!Number.isInteger(line.physicalQty))return toast(`A quantidade física de ${line.item.name} deve ser um número inteiro de ${dispatchSpec(line.item,p).unit}.`);
   const factor=stockUnitFactor(p,line.item.unit);if(!(factor>0))return toast(`Unidade incompatível para ${line.item.name}. Confira a unidade/conteúdo cadastrado.`);
   const spec=dispatchSpec(line.item,p);
   line.qty=spec?physicalToStockQty(line.item,p,line.physicalQty):line.physicalQty;
-  const expected=line.item.requiresManual?null:stockWithdrawalQty(line.item,p);
-  const expectedPhysical=spec?spec.required:(expected===null?null:expected);
+  const net=line.item.requiresManual?null:netDispatchRequirement(line.item,p,workshop);
+  const expected=net?net.required:null;
+  const expectedPhysical=spec?(net?.physical??spec.required):(expected===null?null:expected);
   line.baseQty=line.qty*factor;line.factor=factor;line.expectedQty=expected;line.expectedPhysical=expectedPhysical;line.missingQty=expectedPhysical===null?null:Math.max(0,expectedPhysical-line.physicalQty);line.extraQty=expectedPhysical===null?null:Math.max(0,line.physicalQty-expectedPhysical);line.dispatchUnit=spec?.unit||p.unit;
   totalsByProduct.set(p.id,(totalsByProduct.get(p.id)||0)+line.qty);
  }
@@ -772,7 +805,8 @@ $('confirmBulkIssue').addEventListener('click',()=>{
  const now=new Date().toISOString();
  const dispatchLines=[];
  for(const line of lines){
-  const p=state.products.find(x=>x.id===line.productId),before=Number(p.qty)||0;
+  if(line.skipped){dispatchLines.push({productId:'',productName:line.item.name,unit:line.item.unit||'unidade',dispatchUnit:line.dispatchUnit,physicalSent:0,required:null,requiredPhysical:line.expectedPhysical,sent:0,missing:line.missingQty,extra:0,workshop,oc:currentCalc.oc||'',cut:currentCalc.number||'',date:now,reason:'Sem produto cadastrado/sem material; pendente'});continue;}
+  const p=state.products.find(x=>x.id===line.productId);if(!p)return toast(`Produto não encontrado para ${line.item.name}. Atualize a tela e tente novamente.`);const before=Number(p.qty)||0;
   const expected=line.expectedQty;
   dispatchLines.push({productId:p.id,productName:productLabel(p),unit:p.unit,dispatchUnit:line.dispatchUnit,physicalSent:line.physicalQty,required:expected,requiredPhysical:line.expectedPhysical,sent:line.qty,missing:line.missingQty,extra:line.extraQty,workshop,oc:currentCalc.oc||'',cut:currentCalc.number||'',date:now});
   if(line.qty<=0)continue;
@@ -881,7 +915,7 @@ $('interpretVoice').addEventListener('click',()=>{
  toast('Não consegui interpretar o comando. Tente “500 unidades de zíper preto”.');
 });
 $('exportBtn').addEventListener('click',()=>{
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.4.2',...state},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),project:'Estoque de Aviamentos',version:'1.4.4',...state},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='backup-estoque-aviamentos.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  toast('Backup exportado. Guarde o arquivo em local seguro.');
 });
