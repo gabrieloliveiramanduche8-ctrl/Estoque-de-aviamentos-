@@ -14,7 +14,7 @@ test('rejeita códigos duplicados no backup',()=>assert.strictEqual(ctx.validate
 test('rejeita quantidade inválida em movimentação',()=>assert.strictEqual(ctx.validateImportedBackup({products:[],moves:[{qty:-4}],cuts:[]}).ok,false));
 test('código duplicado também é bloqueado no cadastro',()=>assert(html.includes("String(x.code||'').trim()===p.code")));
 test('conferência usa tolerância numérica para diferenças de ponto flutuante',()=>assert(html.includes('const tolerance=Math.max(0.001,Math.abs(planned)*1e-9)')));
-test('backup exportado identifica a versão 1.4.4',()=>assert(html.includes("version:'1.4.4'")));
+test('backup exportado identifica a versão 1.4.5',()=>assert(html.includes("version:'1.4.5'")));
 test('restauração pede confirmação com quantidades e valida os dados antes',()=>assert(html.includes('const validation=validateImportedBackup(data)')&&html.includes('${data.products.length} produto(s)')));
 test('não altera regras de consumo já cadastradas',()=>{assert(html.includes('amount:total,unit:\'unidades\''));assert(html.includes('const meters=total*1.3'));assert(html.includes('g.qty*.35'));assert(html.includes('total*.4'));});
 test('novas páginas de reservas, embalagens, previsão e assistente existem',()=>{for(const id of ['reservas','embalagens','previsao','assistente'])assert(html.includes('id="page-'+id+'"'));});
@@ -105,3 +105,11 @@ console.log(`FINAL RESULT: ${pass} PASS, ${fail} FAIL`);process.exitCode=fail?1:
   test('saída desconta saldo físico já existente na oficina',()=>assert(html.includes('function netDispatchRequirement') && html.includes('gross-already')));
   test('itens com nome aproximado não escolhem automaticamente cor/variação',()=>assert(html.includes('const exactMatch=products.find(p=>norm(p.name)===itemName)')));
 }
+
+const physicalCtx={Number,String,Math,norm:s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()};vm.createContext(physicalCtx);vm.runInContext(extractFunction('workshopPhysicalSpec')+';'+extractFunction('workshopToPhysical')+';'+extractFunction('physicalToWorkshop')+';this.workshopPhysicalSpec=workshopPhysicalSpec;this.workshopToPhysical=workshopToPhysical;this.physicalToWorkshop=physicalToWorkshop;',physicalCtx);
+test('saldo de oficina converte pacotes de cordão para cordões físicos',()=>{const p={name:'Cordão',unit:'pacote'};assert.strictEqual(physicalCtx.workshopToPhysical(p,1.4).qty,1400);assert.strictEqual(physicalCtx.physicalToWorkshop(p,600),0.6);});
+test('saldo de oficina converte pacote de elástico em rolos físicos',()=>{const p={name:'Elástico preto',unit:'pacote'};assert.strictEqual(physicalCtx.workshopToPhysical(p,1).qty,15);assert.strictEqual(physicalCtx.physicalToWorkshop(p,6),0.4);});
+test('saldo de oficina converte caixa de refletivo em rolos físicos',()=>{const p={name:'Refletivo prata',unit:'caixa'};assert.strictEqual(physicalCtx.workshopToPhysical(p,1).qty,20);assert.strictEqual(physicalCtx.physicalToWorkshop(p,5),0.25);});
+test('lançamento manual de consumo usa quantidade física e converte para unidade de estoque',()=>assert(html.includes('Quantidade física (${spec.unit}) *')&&html.includes('const qty=physicalToWorkshop(p,physicalQty)')&&html.includes('beforePhysical=workshopToPhysical(p,before).qty')));
+test('tabela e CSV de saldos mostram unidade física, não fração de pacote',()=>assert(html.includes('Saldo físico na oficina')&&html.includes('Saldo físico','Unidade física')&&html.includes("downloadCsv('saldos-oficina.csv',rows)")));
+console.log(`FINAL PATCH TESTS: ${pass} PASS, ${fail} FAIL`);process.exitCode=fail?1:0;
